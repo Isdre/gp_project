@@ -20,7 +20,7 @@ class TinyGP:
     random_const_min = -5
     random_const_max = 5
     max_depth = 10
-    population_size = 100
+    population_size = 10
 
     # -----------
 

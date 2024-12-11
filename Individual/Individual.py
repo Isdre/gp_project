@@ -19,6 +19,8 @@ class Node:
         return self.func(self.left,self.right)
 
 class Individual:
+    shape_filter = pymunk.ShapeFilter(group=1)
+
     def __init__(self, space, ground_y):
         self.brain = None
         self.fitness = 0
@@ -93,12 +95,11 @@ class Individual:
         self.space.add(pj_ba1Right, self.motor_ba1Right, pj_ac1Right, self.motor_ac1Right)
 
         # ---prevent collisions with ShapeFilter
-        shape_filter = pymunk.ShapeFilter(group=1)
-        chassis_shape.filter = shape_filter
-        leftLeg_1a_shape.filter = shape_filter
-        rightLeg_1a_shape.filter = shape_filter
-        leftLeg_1b_shape.filter = shape_filter
-        rightLeg_1b_shape.filter = shape_filter
+        chassis_shape.filter = Individual.shape_filter
+        leftLeg_1a_shape.filter = Individual.shape_filter
+        rightLeg_1a_shape.filter = Individual.shape_filter
+        leftLeg_1b_shape.filter = Individual.shape_filter
+        rightLeg_1b_shape.filter = Individual.shape_filter
 
         # self.motor_ba1Left.rate = 0
         # self.motor_ac1Left.rate = 0
