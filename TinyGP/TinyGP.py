@@ -16,10 +16,13 @@ class TinyGP:
     # parameters
     enum_max = 7
     max_TTL = 60  # seconds
+
     random_const_amount = 50
     random_const_min = -5
     random_const_max = 5
-    max_depth = 10
+    
+    max_depth_start_start = 10
+    max_depth = 50
     population_size = 10
 
     # -----------
@@ -85,13 +88,13 @@ class TinyGP:
 
     def create_random_individual(self) -> Individual:
         ind = Individual(self.space,self.ground_y)
-        ind.brain = self.__create_random_tree(ind,TinyGP.max_depth)
+        ind.brain = self.__create_random_tree(ind,TinyGP.max_depth_start)
         return ind
 
-    def mutation(self):
+    def mutation(self,ind:Individual) -> Individual:
         pass
 
-    def crossover(self):
+    def crossover(self,ind1:Individual,ind2:Individual) -> (Individual,Individual):
         pass
 
     def tournament(self):
