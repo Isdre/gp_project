@@ -9,19 +9,20 @@ from pymunk import Vec2d
 import pymunk.pygame_util
 
 from Individual.Individual import Individual
+from TinyGP.TinyGP import TinyGP
 
-class Simulator():
-
+class Simulator:
     def __init__(self):
         self.display_flags = 0
-        self.display_size = (1000, 800)
+        self.H = 600
+        self.display_size = (1000, self.H)
 
         self.space = pymunk.Space()
         self.space.gravity = (0.0, 981.0)
         # self.space.damping = 0.999 # to prevent it from blowing up.
 
         # Pymunk physics coordinates start from the lower right-hand corner of the screen.
-        self.ground_y = 500
+        self.ground_y = self.H - 50
         #ground = pymunk.Segment(self.space.static_body, (0, self.ground_y), (1000, self.ground_y), 1.0)
         #ground.friction = 1.0
         #self.space.add(ground)
@@ -62,13 +63,13 @@ class Simulator():
         self.space.debug_draw(self.draw_options)  ### Draw space
         pygame.display.update()  ### All done, lets flip the display
 
-    def main(self):
+    def main(self,tinyGP:TinyGP):
         pygame.init()
         self.screen = pygame.display.set_mode(self.display_size, self.display_flags)
         width, height = self.screen.get_size()
         self.create_boundarues(width,height)
         self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
-        x = Individual(self.space,self.ground_y)
+
         def to_pygame(p):
             return int(p.x), int(p.y + height)  # Small hack to convert pymunk to pygame coordinates
 
@@ -84,8 +85,12 @@ class Simulator():
             self.draw()
             iterations = 10
             dt = 1.0 / float(self.fps) / float(iterations)
+            for event in pygame.event.get():
+                if event.type == KEYDOWN and event.key == K_r:
+                    simulate = not simulate
             if simulate:
                 for x in range(iterations):
+                    tinyGP.step()
                     self.space.step(dt)
 
             pygame.display.update()
@@ -94,4 +99,5 @@ class Simulator():
 
 if __name__ == '__main__':
     sim = Simulator()
-    sim.main()
+    tinyGP = TinyGP(sim.space,sim.ground_y,sim.fps)
+    sim.main(tinyGP)
