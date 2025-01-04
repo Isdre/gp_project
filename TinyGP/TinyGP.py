@@ -1,16 +1,7 @@
 import random
 from enum import IntEnum
-from Individual.Individual import Individual,Node
+from Individual.Individual import *
 
-class OperatorGP(IntEnum):
-    Variable = 0,
-    Constant = 1,
-    RotateAcLeft = 2,
-    RotateBaLeft = 3,
-    RotateAcRight = 4,
-    RotateBaRight = 5,
-    AddDegree = 6,
-    SubstractDegree = 7
 
 class TinyGP:
     # parameters
@@ -21,7 +12,7 @@ class TinyGP:
     random_const_min = -5
     random_const_max = 5
     
-    max_depth_start_start = 10
+    max_depth_start = 10
     max_depth = 50
     population_size = 10
 
