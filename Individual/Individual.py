@@ -3,6 +3,12 @@ from pymunk import Vec2d
 import pymunk.pygame_util
 from enum import IntEnum
 
+#How to add function
+#add operator
+#add function
+#increate TinyGP.enum_max
+#add case in __create_random_tree and __change_nodes_body
+
 class OperatorGP(IntEnum):
     Default = -1
     Variable = 0,
@@ -17,8 +23,8 @@ class OperatorGP(IntEnum):
 
 class Node:
     @staticmethod
-    def __default(x:'Node',y:'Node') -> float:
-        return 0.0
+    def __default(x:float,y:float) -> float:
+        return x
 
     def __init__(self):
         self.operator = OperatorGP.Default
@@ -176,9 +182,9 @@ class Individual:
     def substractDegree(self,x:Node, y:Node) -> float:
         return float(x) - float(y)
 
-    def condition(self,x:Node, y:Node, z:Node) -> float:
+    def condition(self,x:Node, y:Node) -> float:
         c = float(x)
         if c > 0:
-            return float(y)
+            return c
         else:
-            return float(z)
+            return float(y)
