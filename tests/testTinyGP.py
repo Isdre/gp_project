@@ -2,7 +2,6 @@ import pymunk
 import numpy as np
 from TinyGP.TinyGP import TinyGP
 
-
 class TestTinyGP:
     def testTinyGP(self):
         TinyGP.population_size = 10
@@ -21,6 +20,23 @@ class TestTinyGP:
             # print(ind.brain)
             assert str(ind.brain).count("(") == pow(2,TinyGP.max_depth) - 1
 
+    def testSize(self):
+        TinyGP.population_size = 1
+        TinyGP.max_depth = 4
+
+        space = pymunk.Space()
+        tinyGP = TinyGP(space, 400, 60)
+        ind = tinyGP.population[0]
+        print()
+        print(ind.brain)
+        print(ind.brain.size)
+        print(ind.brain.depth)
+        tinyGP.mutation(ind)
+        print()
+        print(ind.brain)
+        print(ind.brain.size)
+        print(ind.brain.depth)
+
     def testMutation(self):
         TinyGP.population_size = 1
         TinyGP.max_depth = 3
@@ -34,7 +50,6 @@ class TestTinyGP:
         for i in range(100):
             tinyGP.mutation(ind)
             # print(ind.brain)
-            assert str(ind.brain).count("(") == pow(2, TinyGP.max_depth) - 1
             float(ind.brain)
 
     def testCrossover(self):
@@ -47,11 +62,11 @@ class TestTinyGP:
         ind2 = tinyGP.population[1]
         print()
         print(ind1.brain)
-        assert str(ind1.brain).count("(") == pow(2, TinyGP.max_depth) - 1
+        float(ind1.brain)
         print(ind2.brain)
-        assert str(ind2.brain).count("(") == pow(2, TinyGP.max_depth) - 1
+        float(ind2.brain)
         ind1,ind2 = tinyGP.crossover(ind1,ind2)
         print(ind1.brain)
-        assert str(ind1.brain).count("(") == pow(2, TinyGP.max_depth) - 1
+        float(ind1.brain)
         print(ind2.brain)
-        assert str(ind2.brain).count("(") == pow(2, TinyGP.max_depth) - 1
+        float(ind2.brain)

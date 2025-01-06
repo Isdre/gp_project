@@ -29,14 +29,49 @@ class Node:
     def __init__(self):
         self.operator = OperatorGP.Default
         self.func = Node.__default
-        self.left = 0
-        self.right = 0
+        self._left = 0.0
+        self._right = 0.0
+        self.depth = 1
+        self.size = 1
 
     def __str__(self):
         return f"{self.func.__name__}({self.left},{self.right})"
 
     def __float__(self) -> float:
         return self.func(self.left,self.right)
+
+    def __adjust_size(self, new_value, old_value):
+        if isinstance(new_value, Node):
+            self.size += new_value.size
+        if isinstance(old_value, Node):
+            self.size -= old_value.size
+
+    def __check_depth(self):
+        if isinstance(self._right, Node):
+            self.depth = 1 + self._right.depth
+        if isinstance(self._left, Node):
+            self.depth = max(self.depth,1 + self._left.depth)
+
+    @property
+    def left(self):
+        return self._left
+
+    @left.setter
+    def left(self, value):
+        self.__adjust_size(value, self._left)
+        self._left = value
+        self.__check_depth()
+
+
+    @property
+    def right(self):
+        return self._right
+
+    @right.setter
+    def right(self, value):
+        self.__adjust_size(value, self._right)
+        self._right = value
+        self.__check_depth()
 
 class Individual:
     rotation_rate_up_limit = 15

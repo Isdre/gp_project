@@ -39,7 +39,7 @@ class TinyGP:
         self.mutation_max_depth = TinyGP.max_depth - 1
 
         self.crossover_min_depth = 2
-        self.crossover_max_depthcrossover_max_depth = TinyGP.max_depth - 1
+        self.crossover_max_depth = TinyGP.max_depth - 1
 
 
     def start_generation(self):
@@ -106,10 +106,9 @@ class TinyGP:
     #get random Node at particular depth
     def __get_random_node_at_depth(self,current:Node,depth:int) -> Node:
         # print(depth)
-        if depth == 2:
+        if depth <= 2:
             return current
-        path = random.randint(0,1)
-        if path == 0:
+        if random.random() < 0.5:
             return self.__get_random_node_at_depth(current.left,depth-1)
         else:
             return self.__get_random_node_at_depth(current.right,depth-1)
@@ -118,11 +117,10 @@ class TinyGP:
         depth = random.randint(self.mutation_min_depth, self.mutation_max_depth)
         # print(depth)
         parent = self.__get_random_node_at_depth(ind.brain,depth)
-        to_remove = random.randint(0, 1)
-        if to_remove == 0:
-            parent.left = self.__create_random_tree(ind, TinyGP.max_depth - depth+1)
+        if random.random() < 0.5:
+            parent.left = self.__create_random_tree(ind, random.randint(1,TinyGP.max_depth - depth+1))
         else:
-            parent.right = self.__create_random_tree(ind, TinyGP.max_depth - depth+1)
+            parent.right = self.__create_random_tree(ind, random.randint(1,TinyGP.max_depth - depth+1))
 
     def __change_nodes_body(self, new_body:Individual, node:Node):
         match node.operator:
@@ -189,6 +187,10 @@ class TinyGP:
             self.mutation(mutant)
 
         #merging
+        self.population += mutants
+        self.population += children
+        self.population += parents
+        self.population.sort(key=lambda x: (x.brain.size,x.brain.depth))
 
     #choose and get from population
     def tournament(self,rate:float) -> [Individual]:
