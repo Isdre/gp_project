@@ -1,27 +1,29 @@
 import random
 from enum import IntEnum
+from copy import deepcopy
 from Individual.Individual import *
-
 
 class TinyGP:
     # parameters
     enum_max = 8
-    max_TTL = 60  # seconds
+    max_TTL = 120  # seconds
 
     random_const_amount = 50
     random_const_min = -5
     random_const_max = 5
 
+    generation = 100
     max_depth = 10
     population_size = 10
 
+    mutation_rate = 0.05
+    crossover_rate = 0.5
     # -----------
 
     def __init__(self,space,ground_y,fps):
         self.space = space
         self.ground_y = ground_y
         self.fps = fps
-
         #-----------
         assert TinyGP.max_depth > 2
         assert TinyGP.population_size > 0
@@ -31,18 +33,31 @@ class TinyGP:
         self.best_fitness = 0
         self.random_consts = [random.random() * (TinyGP.random_const_max - TinyGP.random_const_min) + TinyGP.random_const_min for _ in range(TinyGP.random_const_amount)]
         self.population = [self.create_random_individual() for _ in range(TinyGP.population_size)]
+        self.max_TTL = TinyGP.max_TTL
+        #---
+        self.mutation_min_depth = 2
+        self.mutation_max_depth = TinyGP.max_depth - 1
 
-    def step(self):
+        self.crossover_min_depth = 2
+        self.crossover_max_depthcrossover_max_depth = TinyGP.max_depth - 1
+
+
+    def start_generation(self):
         for ind in self.population:
-            f = float(ind.brain)
+            ind.fitness = 0
+            ind.live = True
+
+    #returns true if simulation should be continued
+    def step(self,dt:float) -> bool:
+        for ind in self.population:
+            float(ind.brain)
+        self.calc_fitness()
+        self.max_TTL -= dt
+        return self.max_TTL > 0
 
     def calc_fitness(self):
         for ind in self.population:
-            bonus = 1
-            if (ind.getSpread(0,0) < 0 and ind.crossed_legs) or (ind.getSpread(0,0) > 0 and not ind.crossed_legs):
-                bonus = 1.5
-            ind.fitness += (ind.getDistance() - ind.previous_distance) * bonus / self.fps
-            ind.previous_distance = ind.getDistance()
+            if ind.live: ind.fitness = ind.getDistance()
 
     #full grow
     def __create_random_tree(self,body:Individual,depth:int) -> Node:
@@ -90,6 +105,7 @@ class TinyGP:
 
     #get random Node at particular depth
     def __get_random_node_at_depth(self,current:Node,depth:int) -> Node:
+        # print(depth)
         if depth == 2:
             return current
         path = random.randint(0,1)
@@ -98,8 +114,8 @@ class TinyGP:
         else:
             return self.__get_random_node_at_depth(current.right,depth-1)
 
-    def mutation(self,ind:Individual) -> Individual:
-        depth = random.randint(2, TinyGP.max_depth-1)
+    def mutation(self,ind:Individual):
+        depth = random.randint(self.mutation_min_depth, self.mutation_max_depth)
         # print(depth)
         parent = self.__get_random_node_at_depth(ind.brain,depth)
         to_remove = random.randint(0, 1)
@@ -107,8 +123,6 @@ class TinyGP:
             parent.left = self.__create_random_tree(ind, TinyGP.max_depth - depth+1)
         else:
             parent.right = self.__create_random_tree(ind, TinyGP.max_depth - depth+1)
-
-        return ind
 
     def __change_nodes_body(self, new_body:Individual, node:Node):
         match node.operator:
@@ -133,9 +147,11 @@ class TinyGP:
             self.__change_nodes_body(new_body, node.right)
 
     def crossover(self,ind1:Individual,ind2:Individual) -> (Individual,Individual):
-        depth = random.randint(2, TinyGP.max_depth - 1)
-        parent1 = self.__get_random_node_at_depth(ind1.brain, depth)
-        parent2 = self.__get_random_node_at_depth(ind2.brain, depth)
+        ind1_c = deepcopy(ind1)
+        ind2_c = deepcopy(ind2)
+        depth = random.randint(self.crossover_min_depth, self.crossover_max_depth)
+        parent1 = self.__get_random_node_at_depth(ind1_c.brain, depth)
+        parent2 = self.__get_random_node_at_depth(ind2_c.brain, depth)
         leaf1 = None
         leaf2 = None
 
@@ -147,8 +163,8 @@ class TinyGP:
         if to_change_2 == 0: leaf2 = parent2.left
         else:leaf2 = parent2.right
 
-        self.__change_nodes_body(ind2, leaf1)
-        self.__change_nodes_body(ind1, leaf2)
+        self.__change_nodes_body(ind2_c, leaf1)
+        self.__change_nodes_body(ind1_c, leaf2)
 
         if to_change_1 == 0: parent1.left = leaf2
         else: parent1.right = leaf2
@@ -156,10 +172,28 @@ class TinyGP:
         if to_change_2 == 0: parent2.left = leaf1
         else: parent2.right = leaf1
 
-        return ind1, ind2
+        return ind1_c, ind2_c
 
-    def tournament(self):
-        pass
+    def evolve(self):
+        #crossover
+        parents = self.tournament(self.crossover_rate)
+        children = []
+        for i in range(0,len(parents),2):
+            kids = self.crossover(parents[i],parents[i+1])
+            children.append(kids[0])
+            children.append(kids[1])
 
-    def negative_tournament(self):
+        #mutation
+        mutants = self.tournament(self.mutation_rate)
+        for mutant in mutants:
+            self.mutation(mutant)
+
+        #merging
+
+    #choose and get from population
+    def tournament(self,rate:float) -> [Individual]:
+        return random.choices(self.population,weights=[x.fitness for x in self.population],k=int(len(self.population)*rate))
+
+    #choose and remove from population
+    def negative_tournament(self,rate:float) -> None:
         pass

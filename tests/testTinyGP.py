@@ -32,7 +32,7 @@ class TestTinyGP:
         # print()
         # print(ind.brain)
         for i in range(100):
-            ind = tinyGP.mutation(ind)
+            tinyGP.mutation(ind)
             # print(ind.brain)
             assert str(ind.brain).count("(") == pow(2, TinyGP.max_depth) - 1
             float(ind.brain)

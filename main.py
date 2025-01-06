@@ -31,7 +31,7 @@ class Simulator:
 
         self.draw_options = None
 
-        self.fps = 60
+        self.fps = 30
 
     def create_boundarues(self,width,height):
         rects = [
@@ -90,7 +90,7 @@ class Simulator:
                     simulate = not simulate
             if simulate:
                 for x in range(iterations):
-                    tinyGP.step()
+                    tinyGP.step(dt)
                     self.space.step(dt)
 
             pygame.display.update()

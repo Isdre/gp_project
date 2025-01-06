@@ -45,9 +45,8 @@ class Individual:
 
     def __init__(self, space, ground_y):
         self.brain = None
+        self.live = True
         self.fitness = 0
-        self.crossed_legs = False
-        self.previous_distance = 100
         #-------
 
         self.space = space
@@ -145,10 +144,10 @@ class Individual:
         return x
 
     def __to_one_number(self, x:Node, y:Node) -> float:
-        return (float(x) + float(y)) / 2 #do zmiany
+        return (float(x) + float(y)) / 2
 
     def getDistance(self) -> float:
-        return self.chassis_b.position.x
+        return self.chassis_b.position.x - 100
 
     def getHeight(self,x:Node,y:Node) -> float:
         return self.chassis_b.position.y
