@@ -73,105 +73,149 @@ class Node:
         self._right = value
         self.__check_depth()
 
+import pymunk
+from pymunk.vec2d import Vec2d
+
 class Individual:
     rotation_rate_up_limit = 15
     rotation_rate_down_limit = -15
     shape_filter = pymunk.ShapeFilter(group=1)
 
     def __init__(self, space, ground_y):
+        # Simulation attributes
         self.brain = None
         self.live = True
-        self.fitness = 0
-        #-------
+        self.fitness = 1
 
+        # Space and position initialization
         self.space = space
         self.ground_y = ground_y
-        # Create the spider
-        chassisXY = Vec2d(100, self.ground_y - 100)
-        chWd = 30
-        chHt = 60
-        chassisMass = 10
+        self.start_positions = []
+        chassis_start_xy = Vec2d(100, self.ground_y - 100)
+        self.start_positions.append(chassis_start_xy)
 
-        legWd_a = 50
-        legHt_a = 5
-        legWd_b = 100
-        legHt_b = 5
-        legMass = 1
-        relativeAnguVel = 0
+        # Dimensions and properties
+        chassis_width, chassis_height = 30, 60
+        chassis_mass = 40
+        leg_a_width, leg_a_height = 50, 5
+        leg_b_width, leg_b_height = 100, 5
+        leg_mass = 10
+        default_angular_velocity = 0
 
-        # ---chassis
-        self.chassis_b = pymunk.Body(chassisMass, pymunk.moment_for_box(chassisMass, (chWd, chHt)))
-        self.chassis_b.position = chassisXY
-        chassis_shape = pymunk.Poly.create_box(self.chassis_b, (chWd, chHt))
-        chassis_shape.color = 200, 200, 200, 100
+        # --- Create chassis
+        self.chassis_body = pymunk.Body(chassis_mass, pymunk.moment_for_box(chassis_mass, (chassis_width, chassis_height)))
+        self.chassis_body.position = chassis_start_xy
+        self.chassis_shape = pymunk.Poly.create_box(self.chassis_body, (chassis_width, chassis_height))
+        self.chassis_shape.color = (200, 200, 200, 100)
+        self.chassis_shape.filter = Individual.shape_filter
 
-        # ---first left leg a
-        self.leftLeg_1b_body = pymunk.Body(legMass, pymunk.moment_for_box(legMass, (legWd_a, legHt_a)))
-        self.leftLeg_1b_body.position = chassisXY - ((legWd_a / 2), -chHt / 2)
-        leftLeg_1a_shape = pymunk.Poly.create_box(self.leftLeg_1b_body, (legWd_a, legHt_a))
-        leftLeg_1a_shape.color = 255, 0, 0, 100
+        # Add chassis to space
+        self.space.add(self.chassis_body, self.chassis_shape)
 
-        # ---first left leg b
-        leftLeg_1b_body = pymunk.Body(legMass, pymunk.moment_for_box(legMass, (legWd_b, legHt_b)))
-        leftLeg_1b_body.position = self.leftLeg_1b_body.position - ((legWd_a / 2) + (legWd_b / 2), 0)
-        leftLeg_1b_shape = pymunk.Poly.create_box(leftLeg_1b_body, (legWd_b, legHt_b))
-        leftLeg_1b_shape.color = 0, 255, 0, 100
+        # --- Create legs (left and right)
+        self.legs = []
+        for side in ["left", "right"]:
+            offset = 1 if side == "right" else -1
 
-        # ---first right leg a
-        self.rightLeg_1b_body = pymunk.Body(legMass, pymunk.moment_for_box(legMass, (legWd_a, legHt_a)))
-        self.rightLeg_1b_body.position = chassisXY + ((legWd_a / 2), chHt / 2)
-        rightLeg_1a_shape = pymunk.Poly.create_box(self.rightLeg_1b_body, (legWd_a, legHt_a))
-        rightLeg_1a_shape.color = 255, 0, 0, 100
+            # Create leg `a`
+            leg_a_body = pymunk.Body(leg_mass, pymunk.moment_for_box(leg_mass, (leg_a_width, leg_a_height)))
+            leg_a_body.position = chassis_start_xy + (offset * (leg_a_width - 10), chassis_height/2)
+            leg_a_shape = pymunk.Poly.create_box(leg_a_body, (leg_a_width, leg_a_height))
+            leg_a_shape.color = (255, 0, 0, 100)
+            leg_a_shape.filter = Individual.shape_filter
 
-        # ---first right leg b
-        rightLeg_1b_body = pymunk.Body(legMass, pymunk.moment_for_box(legMass, (legWd_b, legHt_b)))
-        rightLeg_1b_body.position = self.rightLeg_1b_body.position + ((legWd_a / 2) + (legWd_b / 2), 0)
-        rightLeg_1b_shape = pymunk.Poly.create_box(rightLeg_1b_body, (legWd_b, legHt_b))
-        rightLeg_1b_shape.color = 0, 255, 0, 100
+            # Create leg `b`
+            leg_b_body = pymunk.Body(leg_mass, pymunk.moment_for_box(leg_mass, (leg_b_width, leg_b_height)))
+            leg_b_body.position = leg_a_body.position + (offset * (leg_a_width + leg_b_width) / 2, 0)
+            leg_b_shape = pymunk.Poly.create_box(leg_b_body, (leg_b_width, leg_b_height))
+            leg_b_shape.color = (0, 255, 0, 100)
+            leg_b_shape.filter = Individual.shape_filter
 
-        # ---link left leg b with left leg a
-        pj_ba1left = pymunk.PinJoint(leftLeg_1b_body, self.leftLeg_1b_body, (legWd_b / 2, 0),(-legWd_a / 2, 0))
+            # Add leg parts to space
+            self.space.add(leg_a_body, leg_a_shape)
+            self.space.add(leg_b_body, leg_b_shape)
 
-        # anchor point coordinates are wrt the body; not the space
-        pj_ba1left.collide_bodies = False
-        self.motor_ba1Left = pymunk.SimpleMotor(leftLeg_1b_body, self.leftLeg_1b_body, relativeAnguVel)
-        self.space.add(pj_ba1left)
+            # --- Connect leg parts and chassis
+            # Connect leg `b` to leg `a`
+            joint_ba = pymunk.PivotJoint(leg_a_body, leg_b_body, (offset * leg_a_width / 2, 0), (-offset * leg_b_width / 2, 0))
+            joint_ba.collide_bodies = False
+            motor_ba = pymunk.SimpleMotor(leg_a_body, leg_b_body, default_angular_velocity)
 
-        # ---link left leg a with chassis
-        pj_ac1left = pymunk.PinJoint(self.leftLeg_1b_body, self.chassis_b, (legWd_a / 2, 0), (0, chHt / 2))
-        pj_ac1left.collide_bodies = False
-        self.motor_ac1Left = pymunk.SimpleMotor(self.leftLeg_1b_body, self.chassis_b, relativeAnguVel)
-        self.space.add(pj_ac1left)
+            # Connect leg `a` to the chassis
+            joint_ac = pymunk.PivotJoint(leg_a_body, self.chassis_body, (-offset * leg_a_width / 2, 0), (offset * chassis_width/2, chassis_height / 2))
+            joint_ac.collide_bodies = False
+            motor_ac = pymunk.SimpleMotor(leg_a_body, self.chassis_body, default_angular_velocity)
 
-        # ---link right leg b with right leg a
-        pj_ba1Right = pymunk.PinJoint(rightLeg_1b_body, self.rightLeg_1b_body, (-legWd_b / 2, 0),(legWd_a / 2, 0))  # anchor point coordinates are wrt the body; not the space
-        pj_ba1Right.collide_bodies = False
-        self.motor_ba1Right = pymunk.SimpleMotor(rightLeg_1b_body, self.rightLeg_1b_body, relativeAnguVel)
-        self.space.add(pj_ba1Right)
+            # Add joints and motors to space
+            self.space.add(joint_ba, motor_ba, joint_ac, motor_ac)
 
-        # ---link right leg a with chassis
-        pj_ac1Right = pymunk.PinJoint(self.rightLeg_1b_body, self.chassis_b, (-legWd_a / 2, 0), (0, chHt / 2))
-        pj_ac1Right.collide_bodies = False
-        self.motor_ac1Right = pymunk.SimpleMotor(self.rightLeg_1b_body, self.chassis_b, relativeAnguVel)
-        self.space.add(pj_ac1Right)
+            # Track components for removal later
+            self.legs.append((leg_a_body,leg_a_shape, leg_b_body, leg_b_shape, motor_ba, motor_ac, joint_ac, joint_ba))
 
-        self.space.add(self.chassis_b, chassis_shape)
-        self.space.add(self.leftLeg_1b_body, leftLeg_1a_shape, self.rightLeg_1b_body, rightLeg_1a_shape)
-        self.space.add(leftLeg_1b_body, leftLeg_1b_shape, rightLeg_1b_body, rightLeg_1b_shape)
-        self.space.add(self.motor_ba1Left)
-        self.space.add(self.motor_ba1Right)
-        # self.space.add(pj_ba1left, self.motor_ba1Left, pj_ac1left, self.motor_ac1Left)
-        # self.space.add(pj_ba1Right, self.motor_ba1Right, pj_ac1Right, self.motor_ac1Right)
+            # Assign motors to individual properties
+            if side == "left":
+                self.leg_a_body_left = leg_a_body
+                self.leg_b_body_left = leg_b_body
+                self.motor_ac_left = motor_ac
+                self.motor_ba_left = motor_ba
+            elif side == "right":
+                self.leg_a_body_right = leg_a_body
+                self.leg_b_body_right = leg_b_body
+                self.motor_ac_right = motor_ac
+                self.motor_ba_right = motor_ba
 
-        # ---prevent collisions with ShapeFilter
-        chassis_shape.filter = Individual.shape_filter
-        leftLeg_1a_shape.filter = Individual.shape_filter
-        rightLeg_1a_shape.filter = Individual.shape_filter
-        leftLeg_1b_shape.filter = Individual.shape_filter
-        rightLeg_1b_shape.filter = Individual.shape_filter
+            self.start_positions.append((leg_a_body.position,leg_b_body.position))
+        # print(self.start_positions)
 
-        # self.motor_ba1Left.rate = 0
-        # self.motor_ac1Left.rate = 0
+    def reset_individual(self):
+        self.fitness = 1
+        self.live = True
+        # Reset chassis position and velocity
+        self.chassis_body.position = self.start_positions[0]
+        self.chassis_body.force = 0, 0
+        self.chassis_body.torque = 0
+        self.chassis_body.velocity = 0, 0
+        self.chassis_body.angular_velocity = 0
+        self.chassis_body.angle = 0
+
+
+        i = 0
+        # Reset each leg
+        for leg_a_body, _ , leg_b_body, _, _, _, _, _ in self.legs:
+            # Reset leg part `a`
+            leg_a_body.position = self.start_positions[i+1][0]
+            leg_a_body.force = 0, 0
+            leg_a_body.torque = 0
+            leg_a_body.velocity = 0, 0
+            leg_a_body.angular_velocity = 0
+            leg_a_body.angle = 0
+
+            # Reset leg part `b`
+            leg_b_body.position = self.start_positions[i+1][1]
+            leg_b_body.force = 0, 0
+            leg_b_body.torque = 0
+            leg_b_body.velocity = 0, 0
+            leg_b_body.angular_velocity = 0
+            leg_b_body.angle = 0
+
+            i += 1
+
+        # Reset motor rates (ensure no unintended movement)
+        self.motor_ac_left.rate = 0
+        self.motor_ac_right.rate = 0
+
+    def die(self):
+        self.chassis_shape.color = (255,0,0,100)
+        try:
+            self.space.remove(self.chassis_body,self.chassis_shape)
+
+            for leg in self.legs:
+                self.space.remove(*leg)
+
+            self.live = False
+        except Exception as e:
+            print(f"Error during removal: {e}")
+
 
     def __limit_rotation(self, x:float) -> float:
         if x < Individual.rotation_rate_down_limit: x = Individual.rotation_rate_down_limit
@@ -182,32 +226,32 @@ class Individual:
         return (float(x) + float(y)) / 2
 
     def getDistance(self) -> float:
-        return self.chassis_b.position.x - 100
+        return self.chassis_body.position.x - 100
 
     def getHeight(self,x:Node,y:Node) -> float:
-        return self.chassis_b.position.y
+        return self.chassis_body.position.y
 
     def getSpread(self,x:Node,y:Node) -> float:
-        return self.leftLeg_1b_body.position.x - self.rightLeg_1b_body.position.x
+        return self.leg_b_body_left.position.x - self.leg_b_body_right.position.x
 
     def rotateAcLeft(self,x:Node, y:Node) -> float:
         m = self.__to_one_number(x,y)
-        self.motor_ac1Left.rate = self.__limit_rotation(m)
+        self.motor_ac_left.rate = self.__limit_rotation(m)
         return m
 
     def rotateBaLeft(self,x:Node, y:Node) -> float:
         m = self.__to_one_number(x, y)
-        self.motor_ba1Left.rate = self.__limit_rotation(m)
+        self.motor_ba_left.rate = self.__limit_rotation(m)
         return m
 
     def rotateAcRight(self,x:Node, y:Node) -> float:
         m = self.__to_one_number(x, y)
-        self.motor_ac1Right.rate = self.__limit_rotation(m)
+        self.motor_ac_right.rate = self.__limit_rotation(m)
         return m
 
     def rotateBaRight(self,x:Node, y:Node) -> float:
         m = self.__to_one_number(x, y)
-        self.motor_ba1Right.rate = self.__limit_rotation(m)
+        self.motor_ba_right.rate = self.__limit_rotation(m)
         return m
 
     def addDegree(self,x:Node, y:Node) -> float:

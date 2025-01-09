@@ -13,19 +13,17 @@ from TinyGP.TinyGP import TinyGP
 
 class Simulator:
     def __init__(self):
-        self.display_flags = 0
+        self.display_flags = pygame.SCALED
         self.H = 600
         self.display_size = (1000, self.H)
 
         self.space = pymunk.Space()
-        self.space.gravity = (0.0, 981.0)
-        # self.space.damping = 0.999 # to prevent it from blowing up.
+        self.space.gravity = (0.0, 981.0 * 8)
+        self.space.damping = 0.1 # to prevent it from blowing up.
 
         # Pymunk physics coordinates start from the lower right-hand corner of the screen.
         self.ground_y = self.H - 50
-        #ground = pymunk.Segment(self.space.static_body, (0, self.ground_y), (1000, self.ground_y), 1.0)
-        #ground.friction = 1.0
-        #self.space.add(ground)
+
 
         self.screen = None
 
@@ -34,18 +32,19 @@ class Simulator:
         self.fps = 30
 
     def create_boundarues(self,width,height):
+        thickness = 5
         rects = [
-            [(width/2,height-10),(width*1.5,20)]#,
+            [(-thickness,height - thickness),(width + thickness,height - thickness)]#,
             #[(width / 2, 10), (width, 20)],
             #[(10, height/2), (20, height)],
             #[(width-10, height/2), (20, height)]
         ]
 
-        for pos,size in rects:
-            body = pymunk.Body(body_type=pymunk.Body.STATIC)
-            body.position = pos
-            shape = pymunk.Poly.create_box(body, size)
-            self.space.add(body, shape)
+        for a,b in rects:
+            body = pymunk.Segment(self.space.static_body, a, b, thickness)
+            body.friction = 1.0
+
+            self.space.add(body)
 
     def reset_bodies(self):
         for body in self.space.bodies:
@@ -70,17 +69,11 @@ class Simulator:
         self.create_boundarues(width,height)
         self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
 
-        def to_pygame(p):
-            return int(p.x), int(p.y + height)  # Small hack to convert pymunk to pygame coordinates
-
-        def from_pygame(p):
-            return to_pygame(p)
-
         clock = pygame.time.Clock()
         running = True
-        font = pygame.font.Font(None, 16)
 
         simulate = True
+        tinyGP.start_generation()
         while running:
             self.draw()
             iterations = 10
@@ -90,10 +83,10 @@ class Simulator:
                     simulate = not simulate
             if simulate:
                 for x in range(iterations):
-                    tinyGP.step(dt)
-                    self.space.step(dt)
-
+                    if not tinyGP.step(dt):
+                        tinyGP.next_generation()
             pygame.display.update()
+            self.space.step(dt)
             clock.tick(self.fps)
 
 
