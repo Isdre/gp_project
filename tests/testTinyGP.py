@@ -39,7 +39,7 @@ class TestTinyGP:
 
     def testMutation(self):
         TinyGP.population_size = 1
-        TinyGP.max_depth = 3
+        TinyGP.max_depth = 5
 
         space = pymunk.Space()
         tinyGP = TinyGP(space, 400, 60)
