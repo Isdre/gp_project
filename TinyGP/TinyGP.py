@@ -16,7 +16,7 @@ class TinyGP:
     random_const_max = 5
 
     generation = 100
-    max_depth = 5
+    max_depth = 7
     population_size = 12
 
     mutation_rate = 0.25
@@ -43,10 +43,10 @@ class TinyGP:
         #---
 
         self.mutation_min_depth = 2
-        self.mutation_max_depth = TinyGP.max_depth - 1
+        self.mutation_max_depth = TinyGP.max_depth - self.mutation_min_depth
 
         self.crossover_min_depth = 2
-        self.crossover_max_depth = TinyGP.max_depth - 1
+        self.crossover_max_depth = TinyGP.max_depth - self.crossover_min_depth
 
         self.__weights = []
         print("TinyGP created")
@@ -234,9 +234,9 @@ class TinyGP:
         mutants = self.tournament(self.mutation_rate)
         for mutant in mutants:
             if mutant in self.population: self.population.remove(mutant)
-            print(f"Before mutation: {mutant.brain}")
+            # print(f"Before mutation: {mutant.brain}")
             self.mutation(mutant)
-            print(f"After mutation: {mutant.brain}")
+            # print(f"After mutation: {mutant.brain}")
 
         #merging
         self.population += mutants
