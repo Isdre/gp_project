@@ -54,19 +54,15 @@ class TestTinyGP:
 
     def testCrossover(self):
         TinyGP.population_size = 2
-        TinyGP.max_depth = 10
+        TinyGP.max_depth = 5
 
         space = pymunk.Space()
         tinyGP = TinyGP(space, 400, 60)
         ind1 = tinyGP.population[0]
         ind2 = tinyGP.population[1]
-        print()
+
         print(ind1.brain)
-        float(ind1.brain)
         print(ind2.brain)
-        float(ind2.brain)
         ind1,ind2 = tinyGP.crossover(ind1,ind2)
         print(ind1.brain)
-        float(ind1.brain)
         print(ind2.brain)
-        float(ind2.brain)

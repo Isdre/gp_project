@@ -2,6 +2,7 @@ import pymunk
 from pymunk import Vec2d
 import pymunk.pygame_util
 from enum import IntEnum
+from copy import deepcopy
 
 #How to add function
 #add operator
@@ -73,6 +74,18 @@ class Node:
         self._right = value
         self.__check_depth()
 
+    def deepcopy(old_node):
+
+        if not isinstance(old_node, Node):
+            return deepcopy(old_node)
+
+        new_node = Node()
+        new_node.operator = old_node.operator
+        new_node.left = Node.deepcopy(old_node.left)
+        new_node.right = Node.deepcopy(old_node.right)
+
+        return new_node
+
 import pymunk
 from pymunk.vec2d import Vec2d
 
@@ -108,6 +121,7 @@ class Individual:
         self.chassis_shape = pymunk.Poly.create_box(self.chassis_body, (chassis_width, chassis_height))
         self.chassis_shape.color = (200, 200, 200, 100)
         self.chassis_shape.filter = Individual.shape_filter
+        self.chassis_shape.friction = 1
 
         # Add chassis to space
         self.space.add(self.chassis_body, self.chassis_shape)
@@ -123,6 +137,7 @@ class Individual:
             leg_a_shape = pymunk.Poly.create_box(leg_a_body, (leg_a_width, leg_a_height))
             leg_a_shape.color = (255, 0, 0, 100)
             leg_a_shape.filter = Individual.shape_filter
+            leg_a_shape.friction = 1
 
             # Create leg `b`
             leg_b_body = pymunk.Body(leg_mass, pymunk.moment_for_box(leg_mass, (leg_b_width, leg_b_height)))
@@ -130,6 +145,7 @@ class Individual:
             leg_b_shape = pymunk.Poly.create_box(leg_b_body, (leg_b_width, leg_b_height))
             leg_b_shape.color = (0, 255, 0, 100)
             leg_b_shape.filter = Individual.shape_filter
+            leg_b_shape.friction = 1
 
             # Add leg parts to space
             self.space.add(leg_a_body, leg_a_shape)

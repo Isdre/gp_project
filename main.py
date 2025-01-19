@@ -42,7 +42,7 @@ class Simulator:
 
         for a,b in rects:
             body = pymunk.Segment(self.space.static_body, a, b, thickness)
-            body.friction = 1.0
+            body.friction = 5
 
             self.space.add(body)
 

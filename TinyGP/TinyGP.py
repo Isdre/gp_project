@@ -1,6 +1,5 @@
 import random
 from enum import IntEnum
-from copy import deepcopy
 from typing import List
 from pygame import math
 
@@ -17,7 +16,7 @@ class TinyGP:
 
     generation = 100
     max_depth = 7
-    population_size = 12
+    population_size = 20
 
     mutation_rate = 0.25
     crossover_rate = 0.25
@@ -36,6 +35,7 @@ class TinyGP:
         self.best_fitness = 0
         self.best_size = pow(2, TinyGP.max_depth)
         self.random_consts = [random.random() * (TinyGP.random_const_max - TinyGP.random_const_min) + TinyGP.random_const_min for _ in range(TinyGP.random_const_amount)]
+
         self.population = [self.create_random_individual() for _ in range(TinyGP.population_size)]
 
         self.generation = 1
@@ -144,13 +144,20 @@ class TinyGP:
 
     #get random Node at particular depth
     def __get_random_node_at_depth(self,current:Node,depth:int) -> Node:
-        # print(depth)
-        if depth <= 2:
+        if depth <= 1 or not isinstance(current, Node):  # Base case
             return current
-        if random.random() < 0.5:
-            return self.__get_random_node_at_depth(current.left,depth-1)
-        else:
-            return self.__get_random_node_at_depth(current.right,depth-1)
+
+        candidates = []
+        if isinstance(current.left, Node) and current.left.depth >= depth - 1:
+            candidates.append(current.left)
+        if isinstance(current.right, Node) and current.right.depth >= depth - 1:
+            candidates.append(current.right)
+
+        if candidates:
+            chosen = random.choice(candidates)
+            return self.__get_random_node_at_depth(chosen, depth - 1)
+
+        return current
 
     def mutation(self,ind:Individual):
         depth = random.randint(self.mutation_min_depth, self.mutation_max_depth)
@@ -187,12 +194,21 @@ class TinyGP:
             self.__change_nodes_body(new_body, node.right)
 
     def crossover(self,ind1:Individual,ind2:Individual) -> (Individual,Individual):
-        ind1_c = Individual(self.space,self.ground_y)
-        ind1_c.brain = deepcopy(ind1.brain)
+        ind1_c = Individual(self.space, self.ground_y)
+        ind1_c.brain = Node.deepcopy(ind1.brain)
+        self.__change_nodes_body(ind1_c, ind1_c.brain)
         ind2_c = Individual(self.space,self.ground_y)
-        ind2_c.brain = deepcopy(ind2.brain)
+        ind2_c.brain = Node.deepcopy(ind2.brain)
+        self.__change_nodes_body(ind2_c,ind2_c.brain)
 
         depth = random.randint(self.crossover_min_depth, self.crossover_max_depth)
+
+        print(ind1.brain)
+        print(ind2.brain)
+
+        print(ind1_c.brain)
+        print(ind2_c.brain)
+
         parent1 = self.__get_random_node_at_depth(ind1_c.brain, depth)
         parent2 = self.__get_random_node_at_depth(ind2_c.brain, depth)
 
