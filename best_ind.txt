@@ -1,0 +1,4 @@
+condition(rotateAcRight(addDegree(default(-4.086718623020545,0.0),getSpread(0.0,0.0)),rotateBaLeft(default(1.1492687851647219,0.0),getSpread(0.0,0.0))),addDegree(addDegree(default(-2.15978126403635,0.0),getSpread(0.0,0.0)),rotateAcRight(getHeight(0.0,0.0),getSpread(0.0,0.0))))
+198.76027517453844
+15
+4

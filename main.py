@@ -9,7 +9,7 @@ from pymunk import Vec2d
 import pymunk.pygame_util
 
 from Individual.Individual import Individual
-from TinyGP.TinyGP import TinyGP
+from Evolution.Evolution import Evolution
 
 class Simulator:
     def __init__(self):
@@ -46,23 +46,12 @@ class Simulator:
 
             self.space.add(body)
 
-    def reset_bodies(self):
-        for body in self.space.bodies:
-            if not hasattr(body, 'start_position'):
-                continue
-            body.position = Vec2d(body.start_position)
-            body.force = 0, 0
-            body.torque = 0
-            body.velocity = 0, 0
-            body.angular_velocity = 0
-            body.angle = body.start_angle
-
     def draw(self):
         self.screen.fill(THECOLORS["white"])  ### Clear the screen
         self.space.debug_draw(self.draw_options)  ### Draw space
         pygame.display.update()  ### All done, lets flip the display
 
-    def main(self,tinyGP:TinyGP):
+    def main(self,evolution:Evolution):
         pygame.init()
         self.screen = pygame.display.set_mode(self.display_size, self.display_flags)
         width, height = self.screen.get_size()
@@ -73,7 +62,7 @@ class Simulator:
         running = True
 
         simulate = True
-        tinyGP.start_generation()
+        evolution.start_generation()
         while running:
             self.draw()
             iterations = 10
@@ -83,8 +72,16 @@ class Simulator:
                     simulate = not simulate
             if simulate:
                 for x in range(iterations):
-                    if not tinyGP.step(dt):
-                        tinyGP.next_generation()
+                    evolution.step(dt)
+                    if evolution.if_end_generation():
+                        if evolution.if_end_evolution():
+                            evolution.find_best()
+                            evolution.save()
+                            running = False
+                            break
+                        else:
+                            evolution.next_generation()
+
             pygame.display.update()
             self.space.step(dt)
             clock.tick(self.fps)
@@ -92,5 +89,8 @@ class Simulator:
 
 if __name__ == '__main__':
     sim = Simulator()
-    tinyGP = TinyGP(sim.space,sim.ground_y,sim.fps)
-    sim.main(tinyGP)
+    evo = Evolution(sim.space,sim.ground_y,sim.fps)
+    # evo.load_population("population.txt")
+    # evo.load_best_indvidual("best_ind.txt",put_to_population=True)
+    # for p in evo.population:
+    sim.main(evo)

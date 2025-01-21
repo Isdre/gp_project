@@ -4,11 +4,7 @@ import pymunk.pygame_util
 from enum import IntEnum
 from copy import deepcopy
 
-#How to add function
-#add operator
-#add function
-#increate TinyGP.enum_max
-#add case in __create_random_tree and __change_nodes_body
+import uuid
 
 class OperatorGP(IntEnum):
     Default = -1
@@ -24,12 +20,12 @@ class OperatorGP(IntEnum):
 
 class Node:
     @staticmethod
-    def __default(x:float,y:float) -> float:
+    def default(x:float,y:float) -> float:
         return x
 
     def __init__(self):
         self.operator = OperatorGP.Default
-        self.func = Node.__default
+        self.func = Node.default
         self._left = 0.0
         self._right = 0.0
         self.depth = 1
@@ -90,11 +86,18 @@ import pymunk
 from pymunk.vec2d import Vec2d
 
 class Individual:
+    used_ids = set()
+
     rotation_rate_up_limit = 15
     rotation_rate_down_limit = -15
     shape_filter = pymunk.ShapeFilter(group=1)
 
     def __init__(self, space, ground_y):
+        self.unique_id = uuid.uuid4()
+        while self.unique_id in Individual.used_ids:
+            self.unique_id = uuid.uuid4()
+        Individual.used_ids.add(self.unique_id)
+
         # Simulation attributes
         self.brain = None
         self.live = True
@@ -223,15 +226,27 @@ class Individual:
     def die(self):
         self.chassis_shape.color = (255,0,0,100)
         try:
-            self.space.remove(self.chassis_body,self.chassis_shape)
+            assert all(isinstance(item, tuple) and len(item) == 8 for item in self.legs), "Leg components missing in self.legs"
 
             for leg in self.legs:
                 self.space.remove(*leg)
 
+            self.space.remove(self.chassis_body, self.chassis_shape)
+
             self.live = False
+            Individual.used_ids.remove(self.unique_id)
         except Exception as e:
+            print(e.args)
             print(f"Error during removal: {e}")
 
+    def __str__(self):
+        return f"Individual: {self.unique_id}"
+
+    def __eq__(self, other):
+        return isinstance(other, Individual) and self.unique_id == other.unique_id
+
+    def __hash__(self):
+        return hash(self.unique_id)
 
     def __limit_rotation(self, x:float) -> float:
         if x < Individual.rotation_rate_down_limit: x = Individual.rotation_rate_down_limit
@@ -239,7 +254,7 @@ class Individual:
         return x
 
     def __to_one_number(self, x:Node, y:Node) -> float:
-        return (float(x) + float(y)) / 2
+        return (Individual.__float(x) + Individual.__float(y)) / 2
 
     def getDistance(self) -> float:
         return self.chassis_body.position.x - 100
@@ -271,14 +286,20 @@ class Individual:
         return m
 
     def addDegree(self,x:Node, y:Node) -> float:
-        return float(x) + float(y)
+        return Individual.__float(x) + Individual.__float(y)
 
     def substractDegree(self,x:Node, y:Node) -> float:
-        return float(x) - float(y)
+        return Individual.__float(x) - Individual.__float(y)
 
     def condition(self,x:Node, y:Node) -> float:
-        c = float(x)
+        c = Individual.__float(x)
         if c > 0:
             return c
         else:
-            return float(y)
+            return Individual.__float(y)
+
+    def __float(x):
+        try:
+            return float(x)
+        except:
+            return 0.0
