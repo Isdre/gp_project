@@ -9,7 +9,7 @@ from Individual.Individual import *
 class Evolution:
     # parameters
     enum_max = 8
-    max_TTL = 10  # seconds
+    max_TTL = 20  # seconds
 
     random_const_amount = 50
     random_const_min = -5
@@ -53,6 +53,14 @@ class Evolution:
         self.best_fitness = 0
         self.best_size = pow(2, Evolution.max_depth)
         self.best_depth = Evolution.max_depth
+
+        self.general_stagnation_constraint = 5
+        self.general_stagnation_epsilon = 50
+        self.general_stagnation_count = 0
+
+        self.anomaly_contraint = 1000
+        self.left_anomaly_contraint = -100
+
         self.random_consts = [random.random() * (Evolution.random_const_max - Evolution.random_const_min) + Evolution.random_const_min for _ in range(Evolution.random_const_amount)]
 
         self.population = [self.create_random_individual() for _ in range(Evolution.population_size)]
@@ -72,6 +80,7 @@ class Evolution:
     def print_stats(self):
         print(f"Generation: {self.generation}")
         print(f"Size of population: {len(self.population)}")
+        print(f"Stagnation: {self.general_stagnation_count}/{self.general_stagnation_constraint}")
         num_bodies = len(self.space.bodies)
         num_shapes = len(self.space.shapes)
         num_constraints = len(self.space.constraints)
@@ -95,7 +104,9 @@ class Evolution:
         # print(self.generation_timer)
 
     def next_generation(self):
+        self.check_for_errors()
         self.find_best()
+        self.check_for_stagnation()
         self.evolve()
         self.generation += 1
         self.start_generation()
@@ -106,13 +117,24 @@ class Evolution:
 
     def find_best(self):
         maybe_best = max(self.population, key=lambda x: (x.fitness,-1*x.brain.size,-1*x.brain.depth))
+
+        if maybe_best.fitness - self.best_fitness < self.general_stagnation_epsilon:
+            self.general_stagnation_count += 1
+        else:
+            self.general_stagnation_count = 0
+
         if (maybe_best.fitness > self.best_fitness or
                 (maybe_best.fitness == self.best_fitness and maybe_best.brain.size > self.best_size)  or
                 (maybe_best.fitness == self.best_fitness and maybe_best.brain.size == self.best_size and maybe_best.brain.depth > self.best_depth)) :
-            self.best_brain = str(maybe_best.brain)
-            self.best_fitness = maybe_best.fitness
-            self.best_size = maybe_best.brain.size
-            self.best_depth = maybe_best.brain.depth
+
+            if maybe_best.fitness - self.best_fitness < self.anomaly_contraint:
+                self.best_brain = str(maybe_best.brain)
+
+                self.best_fitness = maybe_best.fitness
+                self.best_size = maybe_best.brain.size
+                self.best_depth = maybe_best.brain.depth
+            else:
+                self.general_stagnation_count += 1
 
         print(f"Best fitness: {self.best_fitness}")
         print(f"Best size: {self.best_size}")
@@ -124,6 +146,27 @@ class Evolution:
             size_sum += p.brain.size
         print(f"Average fitness: {fitness_sum/Evolution.population_size}")
         print(f"Average size: {size_sum / Evolution.population_size}")
+
+    def check_for_stagnation(self):
+        if self.general_stagnation_count >= self.general_stagnation_constraint:
+            self.general_stagnation_count = 0
+            for i in range(self.general_stagnation_constraint//2):
+                ind = min(self.population, key=lambda x: (x.fitness))
+                self.population.remove(ind)
+                ind.die()
+                del ind
+
+                ind = max(self.population, key=lambda x: (x.fitness))
+                self.population.remove(ind)
+                ind.die()
+                del ind
+
+    def check_for_errors(self):
+        for i in range(len(self.population)-1,-1,-1):
+            if self.population[i].fitness < self.left_anomaly_contraint:
+                ind = self.population.pop(i)
+                ind.die()
+                del ind
 
     #full grow
     def __create_random_tree(self,body:Individual,depth:int) -> Node:
@@ -328,14 +371,7 @@ class Evolution:
                 # print(f"Mutant is not in population. {mutant}")
                 # self.population.append(mutant)
 
-            # print(f"Before mutation: {mutant.brain}")
             self.mutation(mutant)
-            # print(f"After mutation: {mutant.brain}")
-        #
-        # to_remove.sort(reverse=True)
-        # for i in to_remove:
-        #     m = mutants.pop(i)
-        #     m.die()
 
         # print("After mutation")
         # print(f"Parents size: {len(parents)}")
@@ -358,6 +394,7 @@ class Evolution:
             for i in range(Evolution.population_size,len(self.population)):
                 ind = self.population.pop(-1)
                 ind.die()
+                del ind
         elif len(self.population) < Evolution.population_size:
             # print("Not enough")
             for i in range(Evolution.population_size-len(self.population)):
@@ -385,7 +422,7 @@ class Evolution:
         else:
             probabilities = [w / total_weight for w in weights]
 
-        selection_count = int(Evolution.population_size * rate)
+        selection_count = int(len(self.population) * rate)
 
         selected_individuals = np.random.choice(
             self.population,
@@ -414,7 +451,7 @@ class Evolution:
         else:
             probabilities = [w / total_weight for w in weights]
 
-        removal_count = int(Evolution.population_size * rate)
+        removal_count = int(len(self.population) * rate)
 
         to_remove = np.random.choice(
             range(len(self.population)),
@@ -426,6 +463,7 @@ class Evolution:
         for index in sorted(to_remove, reverse=True):
             individual = self.population.pop(index)
             individual.die()
+            del individual
 
     def validate_population(self):
         assert len(self.population) == Evolution.population_size, "Population exceeds the allowed size!"
@@ -463,6 +501,7 @@ class Evolution:
             self.best_depth = int(f.readline().strip())
         if put_to_population:
             self.load_individual(self.best_brain)
+
     def load_population(self,filename):
         self.__clear_population()
         with open(filename, "r") as f:
@@ -534,6 +573,7 @@ class Evolution:
         for _ in range(len(self.population)):
             i = self.population.pop(-1)
             i.die()
+            del i
 
     def reached_time_limit(self):
         return self.generation_timer >= Evolution.max_TTL

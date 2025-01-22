@@ -37,6 +37,10 @@ class Node:
     def __float__(self) -> float:
         return self.func(self.left,self.right)
 
+    def __del__(self):
+        del self._left
+        del self._right
+
     def __adjust_size(self, new_value, old_value):
         if isinstance(new_value, Node):
             self.size += new_value.size
@@ -107,7 +111,7 @@ class Individual:
         self.space = space
         self.ground_y = ground_y
         self.start_positions = []
-        chassis_start_xy = Vec2d(100, self.ground_y - 100)
+        chassis_start_xy = Vec2d(100, self.ground_y - 150)
         self.start_positions.append(chassis_start_xy)
 
         # Dimensions and properties
@@ -220,6 +224,8 @@ class Individual:
             i += 1
 
         # Reset motor rates (ensure no unintended movement)
+        self.motor_ba_left.rate = 0
+        self.motor_ba_right.rate = 0
         self.motor_ac_left.rate = 0
         self.motor_ac_right.rate = 0
 
@@ -247,6 +253,9 @@ class Individual:
 
     def __hash__(self):
         return hash(self.unique_id)
+
+    def __del__(self):
+        del self.brain
 
     def __limit_rotation(self, x:float) -> float:
         if x < Individual.rotation_rate_down_limit: x = Individual.rotation_rate_down_limit

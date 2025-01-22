@@ -55,7 +55,7 @@ class Simulator:
         pygame.init()
         self.screen = pygame.display.set_mode(self.display_size, self.display_flags)
         width, height = self.screen.get_size()
-        self.create_boundarues(width,height)
+        self.create_boundarues(width*5,height)
         self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
 
         clock = pygame.time.Clock()
