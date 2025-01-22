@@ -1,3 +1,7 @@
+    walka ze stagnacją usunięcie 2 najlepszych i 2 najgorzych
+    hamowanie zbyt szybkiego rozwoju
+
+
     # parameters
     enum_max = 8
     max_TTL = 50  # seconds

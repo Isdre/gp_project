@@ -20,12 +20,12 @@ class OperatorGP(IntEnum):
 
 class Node:
     @staticmethod
-    def default(x:float,y:float) -> float:
+    def default(x:'Node',y:'Node') -> float:
         return x
 
     def __init__(self):
         self.operator = OperatorGP.Default
-        self.func = Node.default
+        self.func = self.default
         self._left = 0.0
         self._right = 0.0
         self.depth = 1
@@ -92,8 +92,8 @@ from pymunk.vec2d import Vec2d
 class Individual:
     used_ids = set()
 
-    rotation_rate_up_limit = 15
-    rotation_rate_down_limit = -15
+    rotation_rate_up_limit = 30
+    rotation_rate_down_limit = -30
     shape_filter = pymunk.ShapeFilter(group=1)
 
     def __init__(self, space, ground_y):

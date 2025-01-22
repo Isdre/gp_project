@@ -20,8 +20,8 @@ class Simulator:
         self.display_size = (1000, self.H)
 
         self.space = pymunk.Space()
-        self.space.gravity = (0.0, 981.0 * 8)
-        self.space.damping = 0.1 # to prevent it from blowing up.
+        self.space.gravity = (0.0, 981.0 * 15)
+        self.space.damping = 0.2 # to prevent it from blowing up.
 
         # Pymunk physics coordinates start from the lower right-hand corner of the screen.
         self.ground_y = self.H - 50
@@ -34,22 +34,22 @@ class Simulator:
         self.fps = 30
 
     def create_boundarues(self,width,height):
-        thickness = 7
+        thickness = 10
         rects = [
             [[-thickness,height - thickness],[width + thickness,height - thickness]]#,
         ]
-        # last = [[200 + rects[-1][0][0],  rects[-1][0][1]], [rects[-1][1][0],  rects[-1][1][1]]]
-        # for i in range(20):
-        #     last = deepcopy(last)
-        #     last[0][0] += 45
-        #     last[0][1] -= 15
-        #     last[1][0] += 25
-        #     last[1][1] -= 15
-        #     rects.append(last)
+        last = [[150 + rects[-1][0][0],  rects[-1][0][1]], [rects[-1][1][0],  rects[-1][1][1]]]
+        for i in range(20):
+            last = deepcopy(last)
+            last[0][0] += 80
+            last[0][1] -= 20
+            last[1][0] += 80
+            last[1][1] -= 20
+            rects.append(last)
 
         for a,b in rects:
             body = pymunk.Segment(self.space.static_body, a, b, thickness)
-            body.friction = 5
+            body.friction = 10
 
             self.space.add(body)
 
@@ -97,6 +97,6 @@ class Simulator:
 if __name__ == '__main__':
     sim = Simulator()
     evo = Evolution(sim.space,sim.ground_y,sim.fps)
-    # evo.load_population("population_base.txt")
-    # evo.load_best_indvidual("best_ind_base.txt",put_to_population=True)
+    evo.load_population("results/base/population_base_2.txt")
+    evo.load_best_indvidual("results/base/best_ind_base_2.txt",put_to_population=True)
     sim.main(evo)

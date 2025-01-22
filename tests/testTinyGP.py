@@ -60,7 +60,6 @@ class TestEvolution:
         evo = Evolution(space, 400, 60)
         ind1 = evo.population[0]
         ind2 = evo.population[1]
-
         print(ind1.brain)
         print(ind2.brain)
         ind1,ind2 = evo.crossover(ind1,ind2)

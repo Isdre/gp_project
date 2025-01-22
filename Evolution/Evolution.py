@@ -12,18 +12,21 @@ class Evolution:
     max_TTL = 50  # seconds
 
     random_const_amount = 50
-    random_const_min = -5
-    random_const_max = 5
+    random_const_min = -25
+    random_const_max = 25
 
     generation = 50
-    max_depth = 8
+    max_depth = 10
     population_size = 50
 
-    mutation_rate = 0.25
-    crossover_rate = 0.25
+    mutation_rate_basic = 0.25
+    mutation_rate_critic = 0.3
 
-    best_ind_file = "best_ind_base_1.txt"
-    population_file = "population_base_1.txt"
+    crossover_rate_basic = 0.25
+    crossover_rate_critic = 0.0
+
+    best_ind_file = "best_ind_problem_1.txt"
+    population_file = "population_problem_1.txt"
     # -----------
 
     def __init__(self,space,ground_y,fps,end_generation=0, end_evolution=0):
@@ -54,26 +57,38 @@ class Evolution:
         self.best_size = pow(2, Evolution.max_depth)
         self.best_depth = Evolution.max_depth
 
-        self.general_stagnation_constraint = 5
+        self.general_stagnation_constraint = 7
         self.general_stagnation_epsilon = 50
         self.general_stagnation_count = -1
+        self.general_stagnation = False
 
-        self.anomaly_contraint = 1000
-        self.left_anomaly_contraint = -100
+        self.anomaly_constraint = 750
+        self.left_anomaly_constraint = -100
 
         self.random_consts = [random.random() * (Evolution.random_const_max - Evolution.random_const_min) + Evolution.random_const_min for _ in range(Evolution.random_const_amount)]
 
         self.population = [self.create_random_individual() for _ in range(Evolution.population_size)]
 
+        self.mutation_rate = Evolution.mutation_rate_basic
+        self.crossover_rate = Evolution.crossover_rate_basic
+        self.negative_tournament_rate = Evolution.crossover_rate_basic
+
         self.generation = 1
         self.generation_timer = 0
         #---
 
-        self.mutation_min_depth = 2
-        self.mutation_max_depth = Evolution.max_depth - self.mutation_min_depth
+        self.mutation_min_depth = 4
+        self.mutation_max_depth = 6
 
-        self.crossover_min_depth = 2
-        self.crossover_max_depth = Evolution.max_depth - self.crossover_min_depth
+        self.crossover_min_depth = 6
+        self.crossover_max_depth = 8
+
+        with open("best_fitness.txt","w") as f:
+            f.write("")
+        with open("average_fitness.txt","w") as f:
+            f.write("")
+        with open("average_size.txt","w") as f:
+            f.write("")
 
         print("First generation created")
 
@@ -113,7 +128,7 @@ class Evolution:
 
     def calc_fitness(self):
         for ind in self.population:
-            if ind.live: ind.fitness = max(1,ind.getDistance())
+            if ind.live: ind.fitness = max(ind.fitness,ind.getDistance())
 
     def find_best(self):
         maybe_best = max(self.population, key=lambda x: (x.fitness,-1*x.brain.size,-1*x.brain.depth))
@@ -127,6 +142,7 @@ class Evolution:
                 (maybe_best.fitness == self.best_fitness and maybe_best.brain.size < self.best_size)  or
                 (maybe_best.fitness == self.best_fitness and maybe_best.brain.size == self.best_size and maybe_best.brain.depth < self.best_depth)):
 
+            self.best_brain = str(maybe_best.brain)
             self.best_fitness = maybe_best.fitness
             self.best_size = maybe_best.brain.size
             self.best_depth = maybe_best.brain.depth
@@ -141,27 +157,31 @@ class Evolution:
             size_sum += p.brain.size
         print(f"Average fitness: {fitness_sum/Evolution.population_size}")
         print(f"Average size: {size_sum / Evolution.population_size}")
+        with open("best_fitness.txt","a") as f:
+            f.write(f"{self.best_fitness}\n")
+        with open("average_fitness.txt","a") as f:
+            f.write(f"{fitness_sum/Evolution.population_size}\n")
+        with open("average_size.txt","a") as f:
+            f.write(f"{size_sum/Evolution.population_size}\n")
 
     def check_for_stagnation(self):
         if self.general_stagnation_count >= self.general_stagnation_constraint:
+            self.general_stagnation = True
             self.general_stagnation_count = 0
-            for i in range(self.general_stagnation_constraint//2):
-                ind = min(self.population, key=lambda x: (x.fitness))
-                self.population.remove(ind)
-                ind.die()
-                del ind
-
-                ind = max(self.population, key=lambda x: (x.fitness))
-                self.population.remove(ind)
-                ind.die()
-                del ind
+            self.mutation_rate = Evolution.mutation_rate_critic
+            self.crossover_rate = Evolution.crossover_rate_critic
+            self.negative_tournament_rate = Evolution.mutation_rate_critic
 
     def check_for_errors(self):
         for i in range(len(self.population)-1,-1,-1):
-            if not self.population[i].live or self.population[i].fitness < self.left_anomaly_contraint:
+            if self.population[i].fitness > self.best_fitness + self.anomaly_constraint:
+                self.population[i].live = False
+            if not self.population[i].live:# or self.population[i].fitness < self.left_anomaly_constraint:
                 ind = self.population.pop(i)
                 ind.die()
+                # print("DIE")
                 del ind
+
 
     #full grow
     def __create_random_tree(self,body:Individual,depth:int) -> Node:
@@ -211,7 +231,7 @@ class Evolution:
 
     #get random Node at particular depth
     def __get_random_node_at_depth(self,current:Node,depth:int) -> Node:
-        if depth <= 1 or not isinstance(current, Node):  # Base case
+        if depth <= 2 or not (isinstance(current.left, Node) or isinstance(current.right, Node)):
             return current
 
         candidates = []
@@ -232,9 +252,9 @@ class Evolution:
         parent = self.__get_random_node_at_depth(ind.brain,depth)
         try:
             if (isinstance(parent.left,Node)) and (random.random() < 0.5 or not isinstance(parent.right,Node)):
-                parent.left = self.__create_random_tree(ind, random.randint(1,Evolution.max_depth - self.mutation_min_depth))
+                parent.left = self.__create_random_tree(ind, random.randint(self.mutation_min_depth//2, self.mutation_min_depth))
             else:
-                parent.right = self.__create_random_tree(ind, random.randint(1,Evolution.max_depth - self.mutation_min_depth))
+                parent.right = self.__create_random_tree(ind, random.randint(self.mutation_min_depth//2,self.mutation_min_depth))
         except Exception as e:
             print(e)
 
@@ -242,8 +262,6 @@ class Evolution:
         match node.operator:
             case OperatorGP.Variable:
                 match str(node.func):
-                    case "getDistance":
-                        node.func = new_body.getDistance
                     case "getHeight":
                         node.func = new_body.getHeight
                     case "getSpread":
@@ -341,7 +359,7 @@ class Evolution:
         # self.print_stats()
 
         # negative tournament
-        self.negative_tournament(self.crossover_rate)
+        self.negative_tournament(self.negative_tournament_rate)
         # print("After negative_tournament and before mutation")
         # print(f"Parents size: {len(parents)}")
         # print(f"Children size: {len(children)}")
@@ -397,6 +415,12 @@ class Evolution:
         # print("After evolve")
         # self.print_stats()
 
+        if self.general_stagnation:
+            self.mutation_rate = Evolution.mutation_rate_basic
+            self.crossover_rate = Evolution.crossover_rate_basic
+            self.negative_tournament_rate = Evolution.crossover_rate_basic
+            self.general_stagnation = False
+
         self.check_if_are_duplicates()
         self.validate_population()
 
@@ -430,15 +454,48 @@ class Evolution:
         return selected_individuals.tolist()
 
     #choose and remove from population -- check
-    def negative_tournament(self, rate: float) -> None:
+    def negative_tournament_0(self, rate: float) -> None:
         fitness_values = [x.fitness for x in self.population]
+
         min_fitness = min(fitness_values)
-        max_fitness = max(max(fitness_values),abs(min_fitness))
+        max_fitness = max(fitness_values)
 
         if max_fitness == min_fitness:
             weights = [1.0] * len(fitness_values)
         else:
+            # Przekształć fitness na wagi: max_fitness - fitness
             weights = [(max_fitness - f) for f in fitness_values]
+
+        total_weight = sum(weights)
+
+        if total_weight == 0:
+            probabilities = [1.0 / len(weights)] * len(weights)
+        else:
+            probabilities = [w / total_weight for w in weights]
+
+        removal_count = int(len(self.population) * rate)
+
+        to_remove = np.random.choice(
+            range(len(self.population)),
+            size=removal_count,
+            replace=False,
+            p=probabilities
+        )
+
+        for index in sorted(to_remove, reverse=True):
+            individual = self.population.pop(index)
+            individual.die()
+            del individual
+
+    def negative_tournament(self, rate: float) -> None:
+        fitness_values = [(-1) * x.fitness for x in self.population]
+        max_fitness = max(fitness_values)
+        min_fitness = min(fitness_values)
+
+        if max_fitness == min_fitness:
+            weights = [1.0] * len(fitness_values)
+        else:
+            weights = [(f - min_fitness) / (max_fitness - min_fitness) for f in fitness_values]
 
         total_weight = sum(weights)
         if total_weight == 0:
@@ -492,9 +549,9 @@ class Evolution:
     def load_best_indvidual(self,filename:str,put_to_population:bool=False) :
         with open(filename, "r") as f:
             self.best_brain = f.readline().strip()
-            self.best_fitness = float(f.readline().strip())
-            self.best_size = int(f.readline().strip())
-            self.best_depth = int(f.readline().strip())
+        #     self.best_fitness = float(f.readline().strip())
+        #     self.best_size = int(f.readline().strip())
+        #     self.best_depth = int(f.readline().strip())
         if put_to_population:
             self.load_individual(self.best_brain)
 
@@ -520,7 +577,7 @@ class Evolution:
                 match func_name:
                     case "default":
                         node.operator = OperatorGP.Constant
-                    case "getDistance" | "getHeight" | "getSpread":
+                    case "getHeight" | "getSpread":
                         node.operator = OperatorGP.Variable
                         node.func = func_name
                     case "rotateAcLeft":
