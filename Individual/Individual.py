@@ -263,10 +263,10 @@ class Individual:
         return x
 
     def __to_one_number(self, x:Node, y:Node) -> float:
-        return (Individual.__float(x) + Individual.__float(y)) / 2
+        return (self.__float(x) + self.__float(y)) / 2
 
     def getDistance(self) -> float:
-        return self.chassis_body.position.x - 100
+        return float(self.chassis_body.position.x - 100)
 
     def getHeight(self,x:Node,y:Node) -> float:
         return self.chassis_body.position.y
@@ -295,20 +295,23 @@ class Individual:
         return m
 
     def addDegree(self,x:Node, y:Node) -> float:
-        return Individual.__float(x) + Individual.__float(y)
+        return self.__float(x) + self.__float(y)
 
     def substractDegree(self,x:Node, y:Node) -> float:
-        return Individual.__float(x) - Individual.__float(y)
+        return self.__float(x) - self.__float(y)
 
     def condition(self,x:Node, y:Node) -> float:
-        c = Individual.__float(x)
+        c = self.__float(x)
         if c > 0:
             return c
         else:
-            return Individual.__float(y)
+            return self.__float(y)
 
-    def __float(x):
+    def __float(self,x):
         try:
             return float(x)
-        except:
+        except Exception as e:
+            print(e)
+            print(x)
+            self.live = False
             return 0.0

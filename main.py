@@ -11,6 +11,8 @@ import pymunk.pygame_util
 from Individual.Individual import Individual
 from Evolution.Evolution import Evolution
 
+from copy import deepcopy
+
 class Simulator:
     def __init__(self):
         self.display_flags = pygame.SCALED
@@ -32,13 +34,18 @@ class Simulator:
         self.fps = 30
 
     def create_boundarues(self,width,height):
-        thickness = 5
+        thickness = 7
         rects = [
-            [(-thickness,height - thickness),(width + thickness,height - thickness)]#,
-            #[(width / 2, 10), (width, 20)],
-            #[(10, height/2), (20, height)],
-            #[(width-10, height/2), (20, height)]
+            [[-thickness,height - thickness],[width + thickness,height - thickness]]#,
         ]
+        # last = [[200 + rects[-1][0][0],  rects[-1][0][1]], [rects[-1][1][0],  rects[-1][1][1]]]
+        # for i in range(20):
+        #     last = deepcopy(last)
+        #     last[0][0] += 45
+        #     last[0][1] -= 15
+        #     last[1][0] += 25
+        #     last[1][1] -= 15
+        #     rects.append(last)
 
         for a,b in rects:
             body = pymunk.Segment(self.space.static_body, a, b, thickness)
@@ -90,7 +97,6 @@ class Simulator:
 if __name__ == '__main__':
     sim = Simulator()
     evo = Evolution(sim.space,sim.ground_y,sim.fps)
-    # evo.load_population("population.txt")
-    # evo.load_best_indvidual("best_ind.txt",put_to_population=True)
-    # for p in evo.population:
+    # evo.load_population("population_base.txt")
+    # evo.load_best_indvidual("best_ind_base.txt",put_to_population=True)
     sim.main(evo)

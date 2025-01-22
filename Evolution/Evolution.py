@@ -9,21 +9,21 @@ from Individual.Individual import *
 class Evolution:
     # parameters
     enum_max = 8
-    max_TTL = 20  # seconds
+    max_TTL = 50  # seconds
 
     random_const_amount = 50
     random_const_min = -5
     random_const_max = 5
 
     generation = 50
-    max_depth = 7
+    max_depth = 8
     population_size = 50
 
     mutation_rate = 0.25
     crossover_rate = 0.25
 
-    best_ind_file = "best_ind.txt"
-    population_file = "population.txt"
+    best_ind_file = "best_ind_base_1.txt"
+    population_file = "population_base_1.txt"
     # -----------
 
     def __init__(self,space,ground_y,fps,end_generation=0, end_evolution=0):
@@ -56,7 +56,7 @@ class Evolution:
 
         self.general_stagnation_constraint = 5
         self.general_stagnation_epsilon = 50
-        self.general_stagnation_count = 0
+        self.general_stagnation_count = -1
 
         self.anomaly_contraint = 1000
         self.left_anomaly_contraint = -100
@@ -124,17 +124,12 @@ class Evolution:
             self.general_stagnation_count = 0
 
         if (maybe_best.fitness > self.best_fitness or
-                (maybe_best.fitness == self.best_fitness and maybe_best.brain.size > self.best_size)  or
-                (maybe_best.fitness == self.best_fitness and maybe_best.brain.size == self.best_size and maybe_best.brain.depth > self.best_depth)) :
+                (maybe_best.fitness == self.best_fitness and maybe_best.brain.size < self.best_size)  or
+                (maybe_best.fitness == self.best_fitness and maybe_best.brain.size == self.best_size and maybe_best.brain.depth < self.best_depth)):
 
-            if maybe_best.fitness - self.best_fitness < self.anomaly_contraint:
-                self.best_brain = str(maybe_best.brain)
-
-                self.best_fitness = maybe_best.fitness
-                self.best_size = maybe_best.brain.size
-                self.best_depth = maybe_best.brain.depth
-            else:
-                self.general_stagnation_count += 1
+            self.best_fitness = maybe_best.fitness
+            self.best_size = maybe_best.brain.size
+            self.best_depth = maybe_best.brain.depth
 
         print(f"Best fitness: {self.best_fitness}")
         print(f"Best size: {self.best_size}")
@@ -163,7 +158,7 @@ class Evolution:
 
     def check_for_errors(self):
         for i in range(len(self.population)-1,-1,-1):
-            if self.population[i].fitness < self.left_anomaly_contraint:
+            if not self.population[i].live or self.population[i].fitness < self.left_anomaly_contraint:
                 ind = self.population.pop(i)
                 ind.die()
                 del ind
@@ -484,6 +479,7 @@ class Evolution:
         assert a == b, f"Population contained duplicate individuals ({a-b})"
 
     def save(self):
+        self.population.sort(key=lambda x: (x.fitness),reverse=True)
         with open(Evolution.population_file, "w") as f:
             for p in self.population:
                 f.write(str(p.brain)+"\n")
