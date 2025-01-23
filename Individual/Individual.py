@@ -1,3 +1,4 @@
+import numpy as np
 import pymunk
 from pymunk import Vec2d
 import pymunk.pygame_util
@@ -190,10 +191,12 @@ class Individual:
 
             self.start_positions.append((leg_a_body.position,leg_b_body.position))
         # print(self.start_positions)
+        self.max_speed = 0
 
     def reset_individual(self):
         self.fitness = 1
         self.live = True
+        self.max_speed = 0
         # Reset chassis position and velocity
         self.chassis_body.position = self.start_positions[0]
         self.chassis_body.force = 0, 0
@@ -245,6 +248,10 @@ class Individual:
         except Exception as e:
             print(e.args)
             print(f"Error during removal: {e}")
+
+    def check_speed(self):
+        self.max_speed = max(np.sqrt(pow(self.chassis_body.velocity.x,2) + pow(self.chassis_body.velocity.y,2)),self.max_speed)
+        # print(self.max_speed)
 
     def __str__(self):
         return f"Individual: {self.unique_id}"

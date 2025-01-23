@@ -9,13 +9,13 @@ from Individual.Individual import *
 class Evolution:
     # parameters
     enum_max = 8
-    max_TTL = 20  # seconds
+    max_TTL = 50  # seconds
 
     random_const_amount = 50
     random_const_min = -25
     random_const_max = 25
 
-    generation = 1
+    generation = 50
     max_depth = 8
     population_size = 50
 
@@ -60,7 +60,7 @@ class Evolution:
         self.general_stagnation_count = -1
         self.general_stagnation = False
 
-        self.anomaly_constraint = 500
+        self.anomaly_constraint = 4000
         self.left_anomaly_constraint = -100
 
         self.random_consts = [random.random() * (Evolution.random_const_max - Evolution.random_const_min) + Evolution.random_const_min for _ in range(Evolution.random_const_amount)]
@@ -113,6 +113,7 @@ class Evolution:
         for ind in self.population:
             try:
                 float(ind.brain)
+                ind.check_speed()
             except:
                 ind.live = False
         self.calc_fitness()
@@ -175,7 +176,7 @@ class Evolution:
 
     def check_for_errors(self):
         for i in range(len(self.population)-1,-1,-1):
-            if self.population[i].fitness > self.best_fitness + self.anomaly_constraint:
+            if self.population[i].max_speed > self.anomaly_constraint:
                 self.population[i].live = False
             if not self.population[i].live:# or self.population[i].fitness < self.left_anomaly_constraint:
                 ind = self.population.pop(i)
@@ -184,7 +185,7 @@ class Evolution:
                 del ind
 
 
-    #full grow
+    #full
     def __create_random_tree(self,body:Individual,depth:int) -> Node:
         node = Node()
 
