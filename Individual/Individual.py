@@ -17,6 +17,7 @@ class OperatorGP(IntEnum):
     AddDegree = 6,
     SubstractDegree = 7
     Condition = 8
+    Loop = 9
 
 class Node:
     @staticmethod
@@ -92,8 +93,8 @@ from pymunk.vec2d import Vec2d
 class Individual:
     used_ids = set()
 
-    rotation_rate_up_limit = 30
-    rotation_rate_down_limit = -30
+    rotation_rate_up_limit = 15
+    rotation_rate_down_limit = -15
     shape_filter = pymunk.ShapeFilter(group=1)
 
     def __init__(self, space, ground_y):
@@ -163,12 +164,12 @@ class Individual:
             joint_ba = pymunk.PivotJoint(leg_a_body, leg_b_body, (offset * leg_a_width / 2, 0), (-offset * leg_b_width / 2, 0))
             joint_ba.collide_bodies = False
             motor_ba = pymunk.SimpleMotor(leg_a_body, leg_b_body, default_angular_velocity)
-
+            motor_ba.collide_bodies = False
             # Connect leg `a` to the chassis
             joint_ac = pymunk.PivotJoint(leg_a_body, self.chassis_body, (-offset * leg_a_width / 2, 0), (offset * chassis_width/2, chassis_height / 2))
             joint_ac.collide_bodies = False
             motor_ac = pymunk.SimpleMotor(leg_a_body, self.chassis_body, default_angular_velocity)
-
+            motor_ac.collide_bodies = False
             # Add joints and motors to space
             self.space.add(joint_ba, motor_ba, joint_ac, motor_ac)
 
@@ -306,6 +307,13 @@ class Individual:
             return c
         else:
             return self.__float(y)
+
+    def loop(self,x:Node, y:Node) -> float:
+        a = abs(int(float(x)))
+        b = float(y)
+        for _ in range(a):
+            b = float(y)
+        return a * b
 
     def __float(self,x):
         try:

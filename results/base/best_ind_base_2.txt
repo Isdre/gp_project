@@ -1,0 +1,4 @@
+substractDegree(rotateAcRight(default(0.0,0.0),default(3.2490529039511706,0.0)),substractDegree(rotateBaLeft(getHeight(0.0,0.0),getHeight(0.0,0.0)),rotateAcLeft(condition(default(0.0,0.0),default(0.0,0.0)),condition(default(-0.07123543560903833,0.0),default(0.0,0.0)))))
+4569.295774896589
+69
+8

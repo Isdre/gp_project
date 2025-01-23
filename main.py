@@ -21,7 +21,7 @@ class Simulator:
 
         self.space = pymunk.Space()
         self.space.gravity = (0.0, 981.0 * 15)
-        self.space.damping = 0.2 # to prevent it from blowing up.
+        self.space.damping = 0.1 # to prevent it from blowing up.
 
         # Pymunk physics coordinates start from the lower right-hand corner of the screen.
         self.ground_y = self.H - 50
@@ -33,25 +33,95 @@ class Simulator:
 
         self.fps = 30
 
-    def create_boundarues(self,width,height):
-        thickness = 10
+    def create_boundaries(self,width,height):
+        thickness = 15
         rects = [
             [[-thickness,height - thickness],[width + thickness,height - thickness]]#,
         ]
-        last = [[150 + rects[-1][0][0],  rects[-1][0][1]], [rects[-1][1][0],  rects[-1][1][1]]]
-        for i in range(20):
-            last = deepcopy(last)
-            last[0][0] += 80
-            last[0][1] -= 20
-            last[1][0] += 80
-            last[1][1] -= 20
-            rects.append(last)
+        # last = [[150 + rects[-1][0][0],  rects[-1][0][1]], [rects[-1][1][0],  rects[-1][1][1]]]
+        # for i in range(20):
+        #     last = deepcopy(last)
+        #     last[0][0] += 50
+        #     last[0][1] -= 30
+        #     last[1][0] += 50
+        #     last[1][1] -= 30
+        #     rects.append(last)
 
         for a,b in rects:
             body = pymunk.Segment(self.space.static_body, a, b, thickness)
-            body.friction = 10
+            body.friction = 5
 
             self.space.add(body)
+
+    def create_boundaries_1(self, width, height):
+        thickness = 15
+        rects = [
+            [[-thickness, height - thickness], [width + thickness, height - thickness]]
+        ]
+        last = [[150 + rects[-1][0][0], rects[-1][0][1]], [rects[-1][1][0], rects[-1][1][1]]]
+
+        for i in range(20):
+            last = deepcopy(last)
+            last[0][0] += 50
+            last[0][1] -= 30
+            last[1][0] += 50
+            last[1][1] -= 30
+            rects.append(last)
+
+        for a, b in rects:
+            dx = b[0] - a[0]
+            dy = b[1] - a[1]
+
+            normal = (-dy, dx)
+            normal_length = (normal[0] ** 2 + normal[1] ** 2) ** 0.5
+            normal = (normal[0] / normal_length * thickness, normal[1] / normal_length * thickness)
+
+            corners = [
+                (a[0] - normal[0], a[1] - normal[1]),
+                (a[0] + normal[0], a[1] + normal[1]),
+                (b[0] + normal[0], b[1] + normal[1]),
+                (b[0] - normal[0], b[1] - normal[1])
+            ]
+
+            body = pymunk.Poly(self.space.static_body, corners)
+            body.friction = 5
+            self.space.add(body)
+
+    def create_boundaries_2(self, width, height):
+        thickness = 15
+        rects = [
+            [[-thickness, height - thickness], [width + thickness, height - thickness]]
+        ]
+
+        for a, b in rects:
+            dx = b[0] - a[0]
+            dy = b[1] - a[1]
+
+            normal = (-dy, dx)
+            normal_length = (normal[0] ** 2 + normal[1] ** 2) ** 0.5
+            normal = (normal[0] / normal_length * thickness, normal[1] / normal_length * thickness)
+
+            corners = [
+                (a[0] - normal[0], a[1] - normal[1]),
+                (a[0] + normal[0], a[1] + normal[1]),
+                (b[0] + normal[0], b[1] + normal[1]),
+                (b[0] - normal[0], b[1] - normal[1])
+            ]
+
+            body = pymunk.Poly(self.space.static_body, corners)
+            body.friction = 5
+            self.space.add(body)
+
+        pin_radius = 200
+        pin_height = height + pin_radius
+
+        pin_body = pymunk.Body(body_type=pymunk.Body.STATIC)
+        pin_body.position = (500, pin_height - pin_radius + 80)
+
+        pin_shape = pymunk.Circle(pin_body, pin_radius)
+        pin_shape.friction = 5
+        pin_shape.elasticity = 0.5  # Ustaw elastyczność dla kolizji
+        self.space.add(pin_body, pin_shape)
 
     def draw(self):
         self.screen.fill(THECOLORS["white"])  ### Clear the screen
@@ -62,7 +132,7 @@ class Simulator:
         pygame.init()
         self.screen = pygame.display.set_mode(self.display_size, self.display_flags)
         width, height = self.screen.get_size()
-        self.create_boundarues(width*5,height)
+        self.create_boundaries(width*5,height)
         self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
 
         clock = pygame.time.Clock()
@@ -97,6 +167,9 @@ class Simulator:
 if __name__ == '__main__':
     sim = Simulator()
     evo = Evolution(sim.space,sim.ground_y,sim.fps)
-    evo.load_population("results/base/population_base_2.txt")
-    evo.load_best_indvidual("results/base/best_ind_base_2.txt",put_to_population=True)
+    # evo.clear_population()
+    evo.load_population("results/problem2/population_problem_2.txt")
+    evo.load_best_indvidual("results/problem2/best_ind_problem_2.txt",put_to_population=True)
+    # evo.load_population("results/problem2/population_problem2.txt")
+    # evo.load_best_indvidual("results/problem2/best_ind_problem_2.txt",put_to_population=True)
     sim.main(evo)

@@ -1,0 +1,4 @@
+addDegree(rotateBaRight(addDegree(default(0.0,0.0),condition(rotateBaLeft(substractDegree(rotateAcRight(getSpread(0.0,0.0),getSpread(0.0,0.0)),default(4.320528619858809,0.0)),rotateAcLeft(condition(getSpread(0.0,0.0),default(-2.914667308475021,0.0)),rotateBaRight(getSpread(0.0,0.0),getSpread(0.0,0.0)))),rotateBaLeft(substractDegree(default(2.113155756439994,0.0),default(5.532511100899317,0.0)),default(0.0,0.0)))),default(0.0,0.0)),addDegree(default(0.0,0.0),rotateBaRight(addDegree(default(4.320528619858809,0.0),substractDegree(rotateAcLeft(rotateBaLeft(default(0.0,0.0),default(0.0,0.0)),rotateAcLeft(default(-8.428281997458765,0.0),default(5.532511100899317,0.0))),default(-9.086134229527993,0.0))),condition(default(4.50574877241867,0.0),condition(default(0.0,0.0),default(0.0,0.0))))))
+2695.847394310398
+45
+8

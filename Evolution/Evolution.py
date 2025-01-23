@@ -9,24 +9,24 @@ from Individual.Individual import *
 class Evolution:
     # parameters
     enum_max = 8
-    max_TTL = 50  # seconds
+    max_TTL = 20  # seconds
 
     random_const_amount = 50
     random_const_min = -25
     random_const_max = 25
 
-    generation = 50
-    max_depth = 10
+    generation = 1
+    max_depth = 8
     population_size = 50
 
-    mutation_rate_basic = 0.25
-    mutation_rate_critic = 0.3
+    mutation_rate_basic = 0.3
+    mutation_rate_critic = 0.5
 
     crossover_rate_basic = 0.25
     crossover_rate_critic = 0.0
 
-    best_ind_file = "best_ind_problem_1.txt"
-    population_file = "population_problem_1.txt"
+    best_ind_file = "best_ind.txt"
+    population_file = "population.txt"
     # -----------
 
     def __init__(self,space,ground_y,fps,end_generation=0, end_evolution=0):
@@ -37,8 +37,6 @@ class Evolution:
         #-----------
         assert Evolution.max_depth > 2
         assert Evolution.population_size > 0
-
-        Evolution.enum_max = max(OperatorGP)
 
         match end_generation:
             case 0:
@@ -57,12 +55,12 @@ class Evolution:
         self.best_size = pow(2, Evolution.max_depth)
         self.best_depth = Evolution.max_depth
 
-        self.general_stagnation_constraint = 7
-        self.general_stagnation_epsilon = 50
+        self.general_stagnation_constraint = 5
+        self.general_stagnation_epsilon = 100
         self.general_stagnation_count = -1
         self.general_stagnation = False
 
-        self.anomaly_constraint = 750
+        self.anomaly_constraint = 500
         self.left_anomaly_constraint = -100
 
         self.random_consts = [random.random() * (Evolution.random_const_max - Evolution.random_const_min) + Evolution.random_const_min for _ in range(Evolution.random_const_amount)]
@@ -78,7 +76,7 @@ class Evolution:
         #---
 
         self.mutation_min_depth = 4
-        self.mutation_max_depth = 6
+        self.mutation_max_depth = 8
 
         self.crossover_min_depth = 6
         self.crossover_max_depth = 8
@@ -113,7 +111,10 @@ class Evolution:
     #returns true if simulation should be continued
     def step(self,dt:float):
         for ind in self.population:
-            float(ind.brain)
+            try:
+                float(ind.brain)
+            except:
+                ind.live = False
         self.calc_fitness()
         self.generation_timer += dt
         # print(self.generation_timer)
@@ -128,7 +129,7 @@ class Evolution:
 
     def calc_fitness(self):
         for ind in self.population:
-            if ind.live: ind.fitness = max(ind.fitness,ind.getDistance())
+            if ind.live: ind.fitness = ind.getDistance()
 
     def find_best(self):
         maybe_best = max(self.population, key=lambda x: (x.fitness,-1*x.brain.size,-1*x.brain.depth))
@@ -170,7 +171,7 @@ class Evolution:
             self.general_stagnation_count = 0
             self.mutation_rate = Evolution.mutation_rate_critic
             self.crossover_rate = Evolution.crossover_rate_critic
-            self.negative_tournament_rate = Evolution.mutation_rate_critic
+            # self.negative_tournament_rate = Evolution.mutation_rate_critic
 
     def check_for_errors(self):
         for i in range(len(self.population)-1,-1,-1):
@@ -219,8 +220,54 @@ class Evolution:
                 node.func = body.substractDegree
             case OperatorGP.Condition:
                 node.func = body.condition
+            case OperatorGP.Loop:
+                node.func = body.loop
             case _:
                 print("BAD NEWS")
+
+        return node
+
+    #
+    def __create_random_tree_1(self,body:Individual,depth:int) -> Node:
+        node = Node()
+
+        if depth == 1:
+            op = random.randint(0, 1)
+        else:
+            op = random.randint(0, Evolution.enum_max)
+
+        node.operator = OperatorGP(op)
+        match node.operator:
+            case OperatorGP.Variable:
+                v = random.randint(0,1)
+                if v == 0:
+                    node.func = body.getHeight
+                else:
+                    node.func = body.getSpread
+            case OperatorGP.Constant:
+                node.left = random.choice(self.random_consts)
+            case OperatorGP.RotateAcLeft:
+                node.func = body.rotateAcLeft
+            case OperatorGP.RotateBaLeft:
+                node.func = body.rotateBaLeft
+            case OperatorGP.RotateAcRight:
+                node.func = body.rotateAcRight
+            case OperatorGP.RotateBaRight:
+                node.func = body.rotateBaRight
+            case OperatorGP.AddDegree:
+                node.func = body.addDegree
+            case OperatorGP.SubstractDegree:
+                node.func = body.substractDegree
+            case OperatorGP.Condition:
+                node.func = body.condition
+            case OperatorGP.Loop:
+                node.func = body.loop
+            case _:
+                print("BAD NEWS")
+
+        if op > 1:
+            node.left = self.__create_random_tree(body, depth - 1)
+            node.right = self.__create_random_tree(body, depth - 1)
 
         return node
 
@@ -252,9 +299,9 @@ class Evolution:
         parent = self.__get_random_node_at_depth(ind.brain,depth)
         try:
             if (isinstance(parent.left,Node)) and (random.random() < 0.5 or not isinstance(parent.right,Node)):
-                parent.left = self.__create_random_tree(ind, random.randint(self.mutation_min_depth//2, self.mutation_min_depth))
+                parent.left = self.__create_random_tree(ind, random.randint(self.mutation_min_depth, self.mutation_max_depth))
             else:
-                parent.right = self.__create_random_tree(ind, random.randint(self.mutation_min_depth//2,self.mutation_min_depth))
+                parent.right = self.__create_random_tree(ind, random.randint(self.mutation_min_depth,self.mutation_max_depth))
         except Exception as e:
             print(e)
 
@@ -280,6 +327,8 @@ class Evolution:
                 node.func = new_body.substractDegree
             case OperatorGP.Condition:
                 node.func = new_body.condition
+            case OperatorGP.Loop:
+                node.func = new_body.loop
 
         if isinstance(node.left,Node):
             self.__change_nodes_body(new_body, node.left)
@@ -433,7 +482,7 @@ class Evolution:
         if max_fitness == min_fitness:
             weights = [1.0] * len(fitness_values)
         else:
-            weights = [f for f in fitness_values]
+            weights = [(f - min_fitness) / (max_fitness - min_fitness) for f in fitness_values]
 
         total_weight = sum(weights)
         if total_weight == 0:
@@ -525,9 +574,9 @@ class Evolution:
         num_shapes = len(self.space.shapes)
         num_constraints = len(self.space.constraints)
 
-        assert num_bodies == Evolution.population_size * 5
-        assert num_shapes >= Evolution.population_size * 5
-        assert num_constraints == Evolution.population_size * 8
+        # assert num_bodies == Evolution.population_size * 5
+        # assert num_shapes >= Evolution.population_size * 5
+        # assert num_constraints == Evolution.population_size * 8
 
     def check_if_are_duplicates(self):
         a = len(self.population)
@@ -556,7 +605,7 @@ class Evolution:
             self.load_individual(self.best_brain)
 
     def load_population(self,filename):
-        self.__clear_population()
+        self.clear_population()
         with open(filename, "r") as f:
             for line in f.readlines():
                 self.load_individual(line)
@@ -594,6 +643,8 @@ class Evolution:
                         node.operator = OperatorGP.SubstractDegree
                     case "condition":
                         node.operator = OperatorGP.Condition
+                    case "loop":
+                        node.operator = OperatorGP.Loop
                     case _:
                         print(f"Unrecognized operator : {func_name}")
 
@@ -622,7 +673,7 @@ class Evolution:
 
         self.population.append(new_ind)
 
-    def __clear_population(self):
+    def clear_population(self):
         for _ in range(len(self.population)):
             i = self.population.pop(-1)
             i.die()
