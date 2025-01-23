@@ -33,11 +33,13 @@ class Simulator:
 
         self.fps = 30
 
-    def create_boundaries(self,width,height):
+    #płaski teren
+    def create_boundaries_0(self,width,height):
         thickness = 15
         rects = [
             [[-thickness,height - thickness],[width + thickness,height - thickness]]#,
         ]
+        # zaokrąglone schody
         # last = [[150 + rects[-1][0][0],  rects[-1][0][1]], [rects[-1][1][0],  rects[-1][1][1]]]
         # for i in range(20):
         #     last = deepcopy(last)
@@ -53,7 +55,8 @@ class Simulator:
 
             self.space.add(body)
 
-    def create_boundaries_1(self, width, height):
+    #schody
+    def create_boundaries(self, width, height):
         thickness = 15
         rects = [
             [[-thickness, height - thickness], [width + thickness, height - thickness]]
@@ -87,6 +90,7 @@ class Simulator:
             body.friction = 5
             self.space.add(body)
 
+    #półkole
     def create_boundaries_2(self, width, height):
         thickness = 15
         rects = [
@@ -168,8 +172,8 @@ if __name__ == '__main__':
     sim = Simulator()
     evo = Evolution(sim.space,sim.ground_y,sim.fps)
     # evo.clear_population()
-    evo.load_population("results/problem2/population_problem_2.txt")
-    evo.load_best_indvidual("results/problem2/best_ind_problem_2.txt",put_to_population=True)
+    evo.load_population("results/problem3/population_problem_3.txt")
+    evo.load_best_indvidual("results/problem3/best_ind_problem_3.txt",put_to_population=True)
     # evo.load_population("results/problem2/population_problem2.txt")
     # evo.load_best_indvidual("results/problem2/best_ind_problem_2.txt",put_to_population=True)
     sim.main(evo)
