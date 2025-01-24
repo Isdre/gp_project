@@ -9,7 +9,7 @@ from Individual.Individual import *
 class Evolution:
     # parameters
     enum_max = 8
-    max_TTL = 50  # seconds
+    max_TTL = 120  # seconds
 
     random_const_amount = 50
     random_const_min = -25
@@ -25,8 +25,8 @@ class Evolution:
     crossover_rate_basic = 0.25
     crossover_rate_critic = 0.0
 
-    best_ind_file = "best_ind.txt"
-    population_file = "population.txt"
+    best_ind_file = "best_indX.txt"
+    population_file = "populationX.txt"
     # -----------
 
     def __init__(self,space,ground_y,fps,end_generation=0, end_evolution=0):
