@@ -149,8 +149,10 @@ class Simulator:
             iterations = 10
             dt = 1.0 / float(self.fps) / float(iterations)
             for event in pygame.event.get():
+                if event.type == KEYDOWN and event.key == K_ESCAPE:
+                    simulate = False
                 if event.type == KEYDOWN and event.key == K_r:
-                    simulate = not simulate
+                    simulate = True
             if simulate:
                 for x in range(iterations):
                     evolution.step(dt)
@@ -171,9 +173,9 @@ class Simulator:
 if __name__ == '__main__':
     sim = Simulator()
     evo = Evolution(sim.space,sim.ground_y,sim.fps)
-    # evo.clear_population()
-    # evo.load_population("results/problem3/population_problem_3.txt")
-    # evo.load_best_indvidual("results/problem3/best_ind_problem_3.txt",put_to_population=True)
+    evo.clear_population()
+    # evo.load_population("results/population.txt")
+    evo.load_best_indvidual("best_ind.txt",put_to_population=True)
     # evo.load_population("results/problem2/population_problem2.txt")
     # evo.load_best_indvidual("results/problem2/best_ind_problem_2.txt",put_to_population=True)
     sim.main(evo)
