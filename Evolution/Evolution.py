@@ -8,28 +8,28 @@ from Individual.Individual import *
 
 class Evolution:
     # parameters
-    enum_max = 8
-    max_TTL = 120  # seconds
+    enum_max = 10
+    max_TTL = 60  # seconds
 
-    random_const_amount = 50
+    random_const_amount = 100
     random_const_min = -25
     random_const_max = 25
 
-    generation = 50
+    generation = 0
     max_depth = 8
-    population_size = 50
+    population_size = 25
 
-    mutation_rate_basic = 0.3
-    mutation_rate_critic = 0.5
+    mutation_rate_basic = 0.1
+    mutation_rate_critic = 0.25
 
     crossover_rate_basic = 0.25
-    crossover_rate_critic = 0.0
+    crossover_rate_critic = 0.1
 
-    best_ind_file = "best_indX.txt"
-    population_file = "populationX.txt"
+    best_ind_file = "best_ind_foot.txt"
+    population_file = "population_foot.txt"
     # -----------
 
-    def __init__(self,space,ground_y,fps,end_generation=0, end_evolution=0):
+    def __init__(self, space, ground_y, fps, end_generation=0, end_evolution=0):
 
         self.space = space
         self.ground_y = ground_y
@@ -223,6 +223,12 @@ class Evolution:
                 node.func = body.condition
             case OperatorGP.Loop:
                 node.func = body.loop
+            case OperatorGP.RotateBfLeft:
+                # print("ROTATE BF LEFT")
+                node.func = body.rotateBfLeft
+            case OperatorGP.RotateBfRight:
+                # print("ROTATE BF RIGHT")
+                node.func = body.rotateBfRight
             case _:
                 print("BAD NEWS")
 
@@ -275,6 +281,7 @@ class Evolution:
     def create_random_individual(self) -> Individual:
         ind = Individual(self.space,self.ground_y)
         ind.brain = self.__create_random_tree(ind,Evolution.max_depth)
+        # print(ind.brain)
         return ind
 
     #get random Node at particular depth
@@ -330,10 +337,14 @@ class Evolution:
                 node.func = new_body.condition
             case OperatorGP.Loop:
                 node.func = new_body.loop
+            case OperatorGP.RotateBfLeft:
+                node.func = new_body.rotateBfLeft
+            case OperatorGP.RotateBfRight:
+                node.func = new_body.rotateBfRight
 
-        if isinstance(node.left,Node):
+        if isinstance(node.left, Node):
             self.__change_nodes_body(new_body, node.left)
-        if isinstance(node.right,Node):
+        if isinstance(node.right, Node):
             self.__change_nodes_body(new_body, node.right)
 
     def crossover(self,ind1:Individual,ind2:Individual) -> (Individual,Individual):
@@ -646,6 +657,10 @@ class Evolution:
                         node.operator = OperatorGP.Condition
                     case "loop":
                         node.operator = OperatorGP.Loop
+                    case "rotateBfLeft":
+                        node.operator = OperatorGP.RotateBfLeft
+                    case "rotateBfRight":
+                        node.operator = OperatorGP.RotateBfRight
                     case _:
                         print(f"Unrecognized operator : {func_name}")
 

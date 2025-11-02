@@ -9,16 +9,19 @@ import uuid
 
 class OperatorGP(IntEnum):
     Default = -1
-    Variable = 0,
-    Constant = 1,
-    RotateAcLeft = 2,
-    RotateBaLeft = 3,
-    RotateAcRight = 4,
-    RotateBaRight = 5,
-    AddDegree = 6,
+    Variable = 0
+    Constant = 1
+    RotateAcLeft = 2
+    RotateBaLeft = 3
+    RotateAcRight = 4
+    RotateBaRight = 5
+    AddDegree = 6
     SubstractDegree = 7
-    Condition = 8
-    Loop = 9
+    RotateBfLeft = 8
+    RotateBfRight = 9
+    Condition = 10
+    Loop = 11
+
 
 class Node:
     @staticmethod
@@ -64,7 +67,6 @@ class Node:
         self.__adjust_size(value, self._left)
         self._left = value
         self.__check_depth()
-
 
     @property
     def right(self):
@@ -121,6 +123,8 @@ class Individual:
         chassis_mass = 40
         leg_a_width, leg_a_height = 50, 5
         leg_b_width, leg_b_height = 100, 5
+        foot_f_width, foot_f_height = 40, 5
+
         leg_mass = 10
         default_angular_velocity = 0
 
@@ -156,11 +160,24 @@ class Individual:
             leg_b_shape.filter = Individual.shape_filter
             leg_b_shape.friction = 1
 
+            # Create foot `f`
+            foot_f_body = pymunk.Body(leg_mass, pymunk.moment_for_box(leg_mass, (foot_f_width, foot_f_height)))
+            foot_f_body.position = leg_b_body.position + (offset * (leg_b_width + foot_f_width) / 2, 0)
+            foot_f_shape = pymunk.Poly.create_box(foot_f_body, (foot_f_width, foot_f_height))
+            foot_f_shape.color = (0, 0, 255, 100)
+            foot_f_shape.filter = Individual.shape_filter
+            foot_f_shape.friction = 1
+
             # Add leg parts to space
             self.space.add(leg_a_body, leg_a_shape)
             self.space.add(leg_b_body, leg_b_shape)
-
+            self.space.add(foot_f_body, foot_f_shape)
             # --- Connect leg parts and chassis
+            # Connect foot f to leg `b`
+            joint_bf = pymunk.PivotJoint(leg_b_body, foot_f_body, (offset * leg_b_width / 2, 0), (-offset * foot_f_width / 2, 0))
+            joint_bf.collide_bodies = False
+            motor_bf = pymunk.SimpleMotor(leg_b_body, foot_f_body, default_angular_velocity)
+            motor_bf.collide_bodies = False
             # Connect leg `b` to leg `a`
             joint_ba = pymunk.PivotJoint(leg_a_body, leg_b_body, (offset * leg_a_width / 2, 0), (-offset * leg_b_width / 2, 0))
             joint_ba.collide_bodies = False
@@ -172,10 +189,10 @@ class Individual:
             motor_ac = pymunk.SimpleMotor(leg_a_body, self.chassis_body, default_angular_velocity)
             motor_ac.collide_bodies = False
             # Add joints and motors to space
-            self.space.add(joint_ba, motor_ba, joint_ac, motor_ac)
+            self.space.add(joint_ba, motor_ba, joint_ac, motor_ac, joint_bf, motor_bf)
 
             # Track components for removal later
-            self.legs.append((leg_a_body,leg_a_shape, leg_b_body, leg_b_shape, motor_ba, motor_ac, joint_ac, joint_ba))
+            self.legs.append((leg_a_body, leg_a_shape, leg_b_body, leg_b_shape, foot_f_body, foot_f_shape, motor_ba, motor_ac, motor_bf, joint_ac, joint_ba, joint_bf))
 
             # Assign motors to individual properties
             if side == "left":
@@ -183,13 +200,15 @@ class Individual:
                 self.leg_b_body_left = leg_b_body
                 self.motor_ac_left = motor_ac
                 self.motor_ba_left = motor_ba
+                self.motor_bf_left = motor_bf
             elif side == "right":
                 self.leg_a_body_right = leg_a_body
                 self.leg_b_body_right = leg_b_body
                 self.motor_ac_right = motor_ac
                 self.motor_ba_right = motor_ba
+                self.motor_bf_right = motor_bf
 
-            self.start_positions.append((leg_a_body.position,leg_b_body.position))
+            self.start_positions.append((leg_a_body.position,leg_b_body.position,foot_f_body.position))
         # print(self.start_positions)
         self.max_speed = 0
 
@@ -208,7 +227,7 @@ class Individual:
 
         i = 0
         # Reset each leg
-        for leg_a_body, _ , leg_b_body, _, _, _, _, _ in self.legs:
+        for leg_a_body, _, leg_b_body, _, foot_f_body, _, _, _, _, _, _, _ in self.legs:
             # Reset leg part `a`
             leg_a_body.position = self.start_positions[i+1][0]
             leg_a_body.force = 0, 0
@@ -225,6 +244,12 @@ class Individual:
             leg_b_body.angular_velocity = 0
             leg_b_body.angle = 0
 
+            foot_f_body.position = self.start_positions[i+1][2]
+            foot_f_body.force = 0, 0
+            foot_f_body.torque = 0
+            foot_f_body.velocity = 0, 0
+            foot_f_body.angular_velocity = 0
+            foot_f_body.angle = 0
             i += 1
 
         # Reset motor rates (ensure no unintended movement)
@@ -232,11 +257,13 @@ class Individual:
         self.motor_ba_right.rate = 0
         self.motor_ac_left.rate = 0
         self.motor_ac_right.rate = 0
+        self.motor_bf_left.rate = 0
+        self.motor_bf_right.rate = 0
 
     def die(self):
         self.chassis_shape.color = (255,0,0,100)
         try:
-            assert all(isinstance(item, tuple) and len(item) == 8 for item in self.legs), "Leg components missing in self.legs"
+            assert all(isinstance(item, tuple) and len(item) == 12 for item in self.legs), "Leg components missing in self.legs"
 
             for leg in self.legs:
                 self.space.remove(*leg)
@@ -317,10 +344,20 @@ class Individual:
 
     def loop(self,x:Node, y:Node) -> float:
         a = abs(int(float(x)))
-        b = float(y)
+        b = 0
         for _ in range(a):
             b = float(y)
-        return a * b
+        return float(a * b)
+
+    def rotateBfLeft(self,x:Node, y:Node) -> float:
+        m = self.__to_one_number(x, y)
+        self.motor_bf_left.rate = self.__limit_rotation(m)
+        return m
+
+    def rotateBfRight(self,x:Node, y:Node) -> float:
+        m = self.__to_one_number(x, y)
+        self.motor_bf_right.rate = self.__limit_rotation(m)
+        return m
 
     def __float(self,x):
         try:
