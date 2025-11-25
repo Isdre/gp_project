@@ -173,9 +173,9 @@ class Simulator:
 if __name__ == '__main__':
     sim = Simulator()
     evo = Evolution(sim.space,sim.ground_y,sim.fps)
-    evo.clear_population()
-    # evo.load_population("results/population.txt")
-    evo.load_best_indvidual("best_ind_foot.txt",put_to_population=True)
+    # evo.clear_population()
+    # evo.load_population("population_foot.txt")
+    # evo.load_best_indvidual("best_ind_foot.txt",put_to_population=True)
     # evo.load_population("results/problem2/population_problem2.txt")
     # evo.load_best_indvidual("results/problem2/best_ind_problem_2.txt",put_to_population=True)
     sim.main(evo)

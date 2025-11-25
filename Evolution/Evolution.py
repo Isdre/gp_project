@@ -9,17 +9,17 @@ from Individual.Individual import *
 class Evolution:
     # parameters
     enum_max = 10
-    max_TTL = 60  # seconds
+    max_TTL = 10  # seconds
 
     random_const_amount = 100
     random_const_min = -25
     random_const_max = 25
 
-    generation = 0
+    generation = 5
     max_depth = 8
-    population_size = 25
+    population_size = 10
 
-    mutation_rate_basic = 0.1
+    mutation_rate_basic = 0.25
     mutation_rate_critic = 0.25
 
     crossover_rate_basic = 0.25
@@ -28,6 +28,48 @@ class Evolution:
     best_ind_file = "best_ind_foot.txt"
     population_file = "population_foot.txt"
     # -----------
+    # body_parameters = [30, 60, 40, 50, 5, 100, 5, 40, 5, 10, 50, 5, 100, 5, 40, 5, 10]
+    CHASSIS_WIDTH_RANGE = (20.0, 40.0)
+    CHASSIS_HEIGHT_RANGE = (50.0, 70.0)
+
+    CHASSIS_MASS_RANGE = (40.0, 60.0)
+
+    LEFT_LEG_A_WIDTH_RANGE = (40.0, 60.0)
+    LEFT_LEG_A_HEIGHT_RANGE = (5.0, 10.0)
+
+    LEFT_LEG_B_WIDTH_RANGE = (75.0, 125.0)
+    LEFT_LEG_B_HEIGHT_RANGE = (5.0, 10.0)
+
+    LEFT_FOOT_F_WIDTH_RANGE = (30.0, 50.0)
+    LEFT_FOOT_F_HEIGHT_RANGE = (5.0, 10.0)
+
+    LEFT_LEG_MASS_RANGE = (5.0, 20.0)
+
+    RIGHT_LEG_A_WIDTH_RANGE = (40.0, 60.0)
+    RIGHT_LEG_A_HEIGHT_RANGE = (5.0, 10.0)
+
+    RIGHT_LEG_B_WIDTH_RANGE = (75.0, 125.0)
+    RIGHT_LEG_B_HEIGHT_RANGE = (5.0, 10.0)
+
+    RIGHT_FOOT_F_WIDTH_RANGE = (30.0, 50.0)
+    RIGHT_FOOT_F_HEIGHT_RANGE = (5.0, 10.0)
+
+    # right_leg_mass = self.body_parameters[16]
+    RIGHT_LEG_MASS_RANGE = (5.0, 20.0)
+
+    PARAMETER_RANGES = [
+        CHASSIS_WIDTH_RANGE, CHASSIS_HEIGHT_RANGE, CHASSIS_MASS_RANGE,
+        LEFT_LEG_A_WIDTH_RANGE, LEFT_LEG_A_HEIGHT_RANGE,
+        LEFT_LEG_B_WIDTH_RANGE, LEFT_LEG_B_HEIGHT_RANGE,
+        LEFT_FOOT_F_WIDTH_RANGE, LEFT_FOOT_F_HEIGHT_RANGE,
+        LEFT_LEG_MASS_RANGE,
+        RIGHT_LEG_A_WIDTH_RANGE, RIGHT_LEG_A_HEIGHT_RANGE,
+        RIGHT_LEG_B_WIDTH_RANGE, RIGHT_LEG_B_HEIGHT_RANGE,
+        RIGHT_FOOT_F_WIDTH_RANGE, RIGHT_FOOT_F_HEIGHT_RANGE,
+        RIGHT_LEG_MASS_RANGE
+    ]
+
+    MUTATION_STRENGTH = 0.1
 
     def __init__(self, space, ground_y, fps, end_generation=0, end_evolution=0):
 
@@ -51,6 +93,7 @@ class Evolution:
                 self.if_end_evolution = self.reached_generation_limit
 
         self.best_brain = ""
+        self.best_body = ""
         self.best_fitness = 0
         self.best_size = pow(2, Evolution.max_depth)
         self.best_depth = Evolution.max_depth
@@ -182,8 +225,6 @@ class Evolution:
                 ind = self.population.pop(i)
                 ind.die()
                 # print("DIE")
-                del ind
-
 
     #full
     def __create_random_tree(self,body:Individual,depth:int) -> Node:
@@ -234,7 +275,7 @@ class Evolution:
 
         return node
 
-    #
+    #grow
     def __create_random_tree_1(self,body:Individual,depth:int) -> Node:
         node = Node()
 
@@ -278,9 +319,20 @@ class Evolution:
 
         return node
 
+    def __create_random_body_parameters(self, body:Individual):
+        # body_parameters = [30, 60, 40, 50, 5, 100, 5, 40, 5, 10, 50, 5, 100, 5, 40, 5, 10]
+        body_parameters = []
+        for min_val, max_val in self.PARAMETER_RANGES:
+            random_value = random.uniform(min_val, max_val)
+            body_parameters.append(random_value)
+
+        return body_parameters
+
     def create_random_individual(self) -> Individual:
         ind = Individual(self.space,self.ground_y)
         ind.brain = self.__create_random_tree(ind,Evolution.max_depth)
+        ind.body_parameters = self.__create_random_body_parameters(ind)
+        ind.create()
         # print(ind.brain)
         return ind
 
@@ -310,6 +362,30 @@ class Evolution:
                 parent.left = self.__create_random_tree(ind, random.randint(self.mutation_min_depth, self.mutation_max_depth))
             else:
                 parent.right = self.__create_random_tree(ind, random.randint(self.mutation_min_depth,self.mutation_max_depth))
+
+            # randomize part of body parameters
+            num_params_to_mutate = random.randint(1, 3)
+
+            # 2. Wybierz unikalne indeksy do mutacji
+            param_indices = list(range(len(ind.body_parameters)))  # Zakładamy, że jest 17
+            indices_to_mutate = random.sample(param_indices, num_params_to_mutate)
+
+            # 3. Przeprowadź mutację na wybranych indeksach
+            for i in indices_to_mutate:
+                current_value = ind.body_parameters[i]
+                min_range, max_range = Evolution.PARAMETER_RANGES[i]
+
+                max_delta = (max_range - min_range) * Evolution.MUTATION_STRENGTH
+                delta = random.uniform(-max_delta, max_delta)
+                new_value = current_value + delta
+
+                new_value = max(min_range, min(max_range, new_value))
+
+                ind.body_parameters[i] = new_value
+
+            print("Mutation of:")
+            print(ind.unique_id)
+
         except Exception as e:
             print(e)
 
@@ -350,8 +426,10 @@ class Evolution:
     def crossover(self,ind1:Individual,ind2:Individual) -> (Individual,Individual):
         ind1_c = Individual(self.space, self.ground_y)
         ind1_c.brain = Node.deepcopy(ind1.brain)
+        ind1_c.body_parameters = ind1.body_parameters.copy()
         self.__change_nodes_body(ind1_c, ind1_c.brain)
         ind2_c = Individual(self.space,self.ground_y)
+        ind2_c.body_parameters = ind2.body_parameters.copy()
         ind2_c.brain = Node.deepcopy(ind2.brain)
         self.__change_nodes_body(ind2_c,ind2_c.brain)
 
@@ -382,6 +460,27 @@ class Evolution:
 
         if to_change_2 == 0: parent2.left = leaf1
         else: parent2.right = leaf1
+
+        N = len(ind1.body_parameters)
+
+        split_point = random.randint(1, N - 2)
+
+        tail1 = ind1.body_parameters[split_point:]
+        tail2 = ind2.body_parameters[split_point:]
+
+        # Modify the children by assigning the new tails
+        ind1_c.body_parameters = ind1.body_parameters[:split_point] + tail2
+        ind2_c.body_parameters = ind2.body_parameters[:split_point] + tail1
+
+        assert len(ind1_c.body_parameters) == N
+        assert len(ind2_c.body_parameters) == N
+
+        print("Crosover between:")
+        print(ind1.unique_id)
+        print(ind2.unique_id)
+
+        ind1_c.create()
+        ind2_c.create()
 
         return ind1_c, ind2_c
 
@@ -468,7 +567,6 @@ class Evolution:
             for i in range(Evolution.population_size,len(self.population)):
                 ind = self.population.pop(-1)
                 ind.die()
-                del ind
         elif len(self.population) < Evolution.population_size:
             # print("Not enough")
             for i in range(Evolution.population_size-len(self.population)):
@@ -546,7 +644,6 @@ class Evolution:
         for index in sorted(to_remove, reverse=True):
             individual = self.population.pop(index)
             individual.die()
-            del individual
 
     def negative_tournament(self, rate: float) -> None:
         fitness_values = [(-1) * x.fitness for x in self.population]
@@ -576,7 +673,6 @@ class Evolution:
         for index in sorted(to_remove, reverse=True):
             individual = self.population.pop(index)
             individual.die()
-            del individual
 
     def validate_population(self):
         assert len(self.population) == Evolution.population_size, "Population exceeds the allowed size!"
@@ -601,8 +697,10 @@ class Evolution:
         with open(Evolution.population_file, "w") as f:
             for p in self.population:
                 f.write(str(p.brain)+"\n")
+                f.write(str(p.body_parameters) + "\n")
         with open(Evolution.best_ind_file, "w") as f:
             f.write(self.best_brain+"\n")
+            f.write(str(p.body_parameters) + "\n")
             f.write(str(self.best_fitness)+"\n")
             f.write(str(self.best_size)+"\n")
             f.write(str(self.best_depth)+"\n")
@@ -610,19 +708,30 @@ class Evolution:
     def load_best_indvidual(self,filename:str,put_to_population:bool=False) :
         with open(filename, "r") as f:
             self.best_brain = f.readline().strip()
+            self.best_body = f.readline().strip()
         #     self.best_fitness = float(f.readline().strip())
         #     self.best_size = int(f.readline().strip())
         #     self.best_depth = int(f.readline().strip())
         if put_to_population:
-            self.load_individual(self.best_brain)
+            self.load_individual(self.best_brain, self.best_body)
 
     def load_population(self,filename):
         self.clear_population()
         with open(filename, "r") as f:
-            for line in f.readlines():
-                self.load_individual(line)
+            l = 0
+            brain = ""
+            body = ""
 
-    def load_individual(self,brain:str):
+            for line in f.readlines():
+                if l == 0:
+                    brain = line.strip()
+                    l = 1
+                else :
+                    body = line.strip()
+                    self.load_individual(brain, body)
+                    l = 0
+
+    def load_individual(self,brain:str, body_parameters:str):
         new_ind = Individual(self.space,self.ground_y)
 
         def parse_inner(expr):
@@ -684,6 +793,14 @@ class Evolution:
 
         new_ind.brain = parse_inner(brain)
 
+        clean_string = body_parameters.strip('[]')
+
+        string_values = [s.strip() for s in clean_string.split(',')]
+
+        new_ind.body_parameters = [float(s) for s in string_values if s]
+
+        new_ind.create()
+
         self.__change_nodes_body(new_ind, new_ind.brain)
         # print(new_ind.brain)
 
@@ -693,7 +810,6 @@ class Evolution:
         for _ in range(len(self.population)):
             i = self.population.pop(-1)
             i.die()
-            del i
 
     def reached_time_limit(self):
         return self.generation_timer >= Evolution.max_TTL

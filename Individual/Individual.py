@@ -22,7 +22,6 @@ class OperatorGP(IntEnum):
     Condition = 10
     Loop = 11
 
-
 class Node:
     @staticmethod
     def default(x:'Node',y:'Node') -> float:
@@ -105,12 +104,39 @@ class Individual:
         while self.unique_id in Individual.used_ids:
             self.unique_id = uuid.uuid4()
         Individual.used_ids.add(self.unique_id)
-
         # Simulation attributes
         self.brain = None
+        self.body_parameters = None#[30, 60, 40, 50, 5, 100, 5, 40, 5, 10, 50, 5, 100, 5, 40, 5, 10]
         self.live = True
         self.fitness = 1
 
+        # Space and position initialization
+        self.space = space
+        self.ground_y = ground_y
+        self.start_positions = []
+
+        self.chassis_body = None
+        self.chassis_shape = None
+
+        self.legs = []
+
+        self.leg_a_body_left = None
+        self.leg_b_body_left = None
+        self.motor_ac_left = None
+        self.motor_ba_left = None
+        self.motor_bf_left = None
+        self.leg_a_body_right = None
+        self.leg_b_body_right = None
+        self.motor_ac_right = None
+        self.motor_ba_right = None
+        self.motor_bf_right = None
+
+        self.max_speed = 0
+
+    def create(self):
+        self.__create(self.space, self.ground_y)
+
+    def __create(self, space, ground_y):
         # Space and position initialization
         self.space = space
         self.ground_y = ground_y
@@ -119,13 +145,16 @@ class Individual:
         self.start_positions.append(chassis_start_xy)
 
         # Dimensions and properties
-        chassis_width, chassis_height = 30, 60
-        chassis_mass = 40
-        leg_a_width, leg_a_height = 50, 5
-        leg_b_width, leg_b_height = 100, 5
-        foot_f_width, foot_f_height = 40, 5
-
-        leg_mass = 10
+        chassis_width, chassis_height = self.body_parameters[0:2]
+        chassis_mass = self.body_parameters[2]
+        left_leg_a_width, left_leg_a_height = self.body_parameters[3:5]
+        left_leg_b_width, left_leg_b_height = self.body_parameters[5:7]
+        left_foot_f_width, left_foot_f_height = self.body_parameters[7:9]
+        left_leg_mass = self.body_parameters[9]
+        right_leg_a_width, right_leg_a_height = self.body_parameters[10:12]
+        right_leg_b_width, right_leg_b_height = self.body_parameters[12:14]
+        right_foot_f_width, right_foot_f_height = self.body_parameters[14:16]
+        right_leg_mass = self.body_parameters[16]
         default_angular_velocity = 0
 
         # --- Create chassis
@@ -142,7 +171,18 @@ class Individual:
         # --- Create legs (left and right)
         self.legs = []
         for side in ["left", "right"]:
-            offset = 1 if side == "right" else -1
+            if side == "left":
+                offset = 1
+                leg_a_width, leg_a_height = left_leg_a_width, left_leg_a_height
+                leg_b_width, leg_b_height = left_leg_b_width, left_leg_b_height
+                foot_f_width, foot_f_height = left_foot_f_width, left_foot_f_height
+                leg_mass = left_leg_mass
+            else:  # side == "right"
+                offset = -1
+                leg_a_width, leg_a_height = right_leg_a_width, right_leg_a_height
+                leg_b_width, leg_b_height = right_leg_b_width, right_leg_b_height
+                foot_f_width, foot_f_height = right_foot_f_width, right_foot_f_height
+                leg_mass = right_leg_mass
 
             # Create leg `a`
             leg_a_body = pymunk.Body(leg_mass, pymunk.moment_for_box(leg_mass, (leg_a_width, leg_a_height)))
@@ -212,7 +252,26 @@ class Individual:
         # print(self.start_positions)
         self.max_speed = 0
 
+    def destroy_body(self):
+        try:
+            assert all(isinstance(item, tuple) and len(item) == 12 for item in self.legs), "Leg components missing in self.legs"
+
+            for leg in self.legs:
+                self.space.remove(*leg)
+
+            self.space.remove(self.chassis_body, self.chassis_shape)
+        except Exception as e:
+            print(e.args)
+            print(f"Error during removal: {e}")
+            self.live = False
+
+
     def reset_individual(self):
+        self.destroy_body()
+        self.__create(self.space, self.ground_y)
+        self.reset_individual_position()
+
+    def reset_individual_position(self):
         self.fitness = 1
         self.live = True
         self.max_speed = 0
@@ -223,7 +282,6 @@ class Individual:
         self.chassis_body.velocity = 0, 0
         self.chassis_body.angular_velocity = 0
         self.chassis_body.angle = 0
-
 
         i = 0
         # Reset each leg
@@ -261,36 +319,23 @@ class Individual:
         self.motor_bf_right.rate = 0
 
     def die(self):
-        self.chassis_shape.color = (255,0,0,100)
-        try:
-            assert all(isinstance(item, tuple) and len(item) == 12 for item in self.legs), "Leg components missing in self.legs"
+        self.destroy_body()
 
-            for leg in self.legs:
-                self.space.remove(*leg)
-
-            self.space.remove(self.chassis_body, self.chassis_shape)
-
-            self.live = False
-            Individual.used_ids.remove(self.unique_id)
-        except Exception as e:
-            print(e.args)
-            print(f"Error during removal: {e}")
+        self.live = False
+        Individual.used_ids.remove(self.unique_id)
 
     def check_speed(self):
         self.max_speed = max(np.sqrt(pow(self.chassis_body.velocity.x,2) + pow(self.chassis_body.velocity.y,2)),self.max_speed)
         # print(self.max_speed)
 
     def __str__(self):
-        return f"Individual: {self.unique_id}"
+        return f"Individual: {self.unique_id}\nBrain: {self.brain}\nBody Parameters: {self.body_parameters}\nFitness: {self.fitness}\nLive: {self.live}"
 
     def __eq__(self, other):
         return isinstance(other, Individual) and self.unique_id == other.unique_id
 
     def __hash__(self):
         return hash(self.unique_id)
-
-    def __del__(self):
-        del self.brain
 
     def __limit_rotation(self, x:float) -> float:
         if x < Individual.rotation_rate_down_limit: x = Individual.rotation_rate_down_limit
