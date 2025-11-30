@@ -602,8 +602,8 @@ class Evolution:
 
         if max_fitness == min_fitness:
             weights = [1.0] * len(fitness_values)
-        else:
-            weights = [(f - min_fitness) / (max_fitness - min_fitness) for f in fitness_values]
+        else: # todo sprawdzic ponizsza linie
+            weights = [((f - min_fitness) / (max_fitness - min_fitness)) + 1e-6 for f in fitness_values]
 
         total_weight = sum(weights)
         if total_weight == 0:
