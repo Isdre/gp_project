@@ -151,6 +151,18 @@ class Simulator:
                 self.screen.blit(text_surface, (10, y_offset))
                 y_offset += 20
             
+            # Draw stability indicators
+            for ind in evolution.population:
+                if ind.live:
+                    pos = ind.chassis_body.position
+
+                    indicator_pos = (int(pos.x), int(pos.y - 30))
+                    
+                    is_stable = abs(ind.chassis_body.angle) < 0.5
+                    color = (0, 255, 0) if is_stable else (255, 0, 0)
+                    
+                    pygame.draw.circle(self.screen, color, indicator_pos, 5)
+            
             threshold_y = self.ground_y - 15
             pygame.draw.line(self.screen, (255, 0, 0), (0, threshold_y), (self.screen.get_width(), threshold_y), 2)
 
