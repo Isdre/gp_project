@@ -372,7 +372,7 @@ class Individual:
         
         is_above_threshold = height_above_ground >= self.min_height_threshold
         # todo do sprawdzenia ponizsze
-        is_stable = abs(self.chassis_body.angle) < 0.5
+        is_stable = abs(self.chassis_body.angle) < 0.7
         
         if is_above_threshold and is_stable:
             self.stability_time += dt
