@@ -10,6 +10,7 @@ class Evolution:
     # parameters
     enum_max = 10
     max_TTL = 10  # seconds
+    grace_period = 2 # seconds
 
     random_const_amount = 100
     random_const_min = -25
@@ -154,13 +155,23 @@ class Evolution:
     #returns true if simulation should be continued
     def step(self,dt:float):
         for ind in self.population:
+            if not ind.live:
+                continue
             try:
                 float(ind.brain)
                 ind.check_speed()
+                if self.generation_timer > Evolution.grace_period:
+                    ind.update_fitness(dt)
+                    ind.check_height()
             except:
                 ind.live = False
-        self.calc_fitness()
+        # self.calc_fitness()
         self.generation_timer += dt
+        
+        # Early exit if everyone is dead
+        if not any(ind.live for ind in self.population):
+            self.generation_timer = Evolution.max_TTL + 1 # Force end
+        
         # print(self.generation_timer)
 
     def next_generation(self):
@@ -173,7 +184,7 @@ class Evolution:
 
     def calc_fitness(self):
         for ind in self.population:
-            if ind.live: ind.fitness = ind.getDistance()
+            if ind.live: ind.fitness = ind.calculate_fitness()
 
     def find_best(self):
         maybe_best = max(self.population, key=lambda x: (x.fitness,-1*x.brain.size,-1*x.brain.depth))
@@ -220,10 +231,10 @@ class Evolution:
     def check_for_errors(self):
         for i in range(len(self.population)-1,-1,-1):
             if self.population[i].max_speed > self.anomaly_constraint:
-                self.population[i].live = False
-            if not self.population[i].live:# or self.population[i].fitness < self.left_anomaly_constraint:
-                ind = self.population.pop(i)
-                ind.die()
+                # self.population[i].live = False
+            # if not self.population[i].live:# or self.population[i].fitness < self.left_anomaly_constraint:
+                # ind = self.population.pop(i)
+                self.population[i].die()
                 # print("DIE")
 
     #full
