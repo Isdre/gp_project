@@ -145,6 +145,7 @@ class Individual:
         self.start_positions = []
         chassis_start_xy = Vec2d(100, self.ground_y - 150)
         self.start_positions.append(chassis_start_xy)
+        Individual.used_ids.add(self.unique_id)
 
         # Dimensions and properties
         chassis_width, chassis_height = self.body_parameters[0:2]
@@ -329,7 +330,7 @@ class Individual:
         self.destroy_body()
 
         self.live = False
-        Individual.used_ids.remove(self.unique_id)
+        Individual.used_ids.discard(self.unique_id)
 
     def check_speed(self):
         self.max_speed = max(np.sqrt(pow(self.chassis_body.velocity.x,2) + pow(self.chassis_body.velocity.y,2)),self.max_speed)
@@ -374,10 +375,15 @@ class Individual:
         # todo do sprawdzenia ponizsze
         is_stable = abs(self.chassis_body.angle) < 0.7
         
-        if is_above_threshold and is_stable:
-            self.stability_time += dt
+        distance = self.getDistance()
+        
+        if distance < 0:
+            self.fitness = 0
+        else:
+            if is_above_threshold and is_stable:
+                self.stability_time += dt
             
-        self.fitness = self.getDistance() + (self.stability_time * 100.0)
+            self.fitness = distance + (self.stability_time * 10.0)
 
     def getHeight(self,x:Node,y:Node) -> float:
         return self.chassis_body.position.y

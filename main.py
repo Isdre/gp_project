@@ -158,8 +158,15 @@ class Simulator:
 
                     indicator_pos = (int(pos.x), int(pos.y - 30))
                     
+                    distance = ind.getDistance()
                     is_stable = abs(ind.chassis_body.angle) < 0.5
-                    color = (0, 255, 0) if is_stable else (255, 0, 0)
+                    
+                    if distance < 0:
+                        color = (0, 0, 255) # Blue for negative distance
+                    elif is_stable:
+                        color = (0, 255, 0) # Green for stable
+                    else:
+                        color = (255, 0, 0) # Red for unstable
                     
                     pygame.draw.circle(self.screen, color, indicator_pos, 5)
             
