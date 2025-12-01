@@ -9,16 +9,16 @@ from Individual.Individual import *
 class Evolution:
     # parameters
     enum_max = 10
-    max_TTL = 10  # seconds
+    max_TTL = 30  # seconds
     grace_period = 2 # seconds
 
     random_const_amount = 100
     random_const_min = -25
     random_const_max = 25
 
-    generation = 5
+    generation = 100
     max_depth = 8
-    population_size = 10
+    population_size = 100
 
     mutation_rate_basic = 0.25
     mutation_rate_critic = 0.25
@@ -199,6 +199,7 @@ class Evolution:
                 (maybe_best.fitness == self.best_fitness and maybe_best.brain.size == self.best_size and maybe_best.brain.depth < self.best_depth)):
 
             self.best_brain = str(maybe_best.brain)
+            self.best_body = str(maybe_best.body_parameters)
             self.best_fitness = maybe_best.fitness
             self.best_size = maybe_best.brain.size
             self.best_depth = maybe_best.brain.depth
@@ -219,6 +220,12 @@ class Evolution:
             f.write(f"{fitness_sum/Evolution.population_size}\n")
         with open("average_size.txt","a") as f:
             f.write(f"{size_sum/Evolution.population_size}\n")
+        
+        try:
+            import graphs
+            graphs.update_plot()
+        except Exception as e:
+            print(f"Failed to update plot: {e}")
 
     def check_for_stagnation(self):
         if self.general_stagnation_count >= self.general_stagnation_constraint:
@@ -705,16 +712,17 @@ class Evolution:
 
     def save(self):
         self.population.sort(key=lambda x: (x.fitness),reverse=True)
+        best = self.population[0]
         with open(Evolution.population_file, "w") as f:
             for p in self.population:
                 f.write(str(p.brain)+"\n")
                 f.write(str(p.body_parameters) + "\n")
         with open(Evolution.best_ind_file, "w") as f:
-            f.write(self.best_brain+"\n")
-            f.write(str(p.body_parameters) + "\n")
-            f.write(str(self.best_fitness)+"\n")
-            f.write(str(self.best_size)+"\n")
-            f.write(str(self.best_depth)+"\n")
+            f.write(str(best.brain) + "\n")
+            f.write(str(best.body_parameters) + "\n")
+            f.write(str(best.fitness) + "\n")
+            f.write(str(best.brain.size) + "\n")
+            f.write(str(best.brain.depth) + "\n")
 
     def load_best_indvidual(self,filename:str,put_to_population:bool=False) :
         with open(filename, "r") as f:
