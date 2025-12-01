@@ -127,9 +127,56 @@ class Simulator:
         pin_shape.elasticity = 0.5  # Ustaw elastyczność dla kolizji
         self.space.add(pin_body, pin_shape)
 
-    def draw(self):
+    def draw(self, evolution=None):
         self.screen.fill(THECOLORS["white"])  ### Clear the screen
         self.space.debug_draw(self.draw_options)  ### Draw space
+        
+        if evolution:
+            alive_count = sum(1 for ind in evolution.population if ind.live)
+            total_count = len(evolution.population)
+            best_fitness = evolution.best_fitness
+            generation = evolution.generation
+            
+            stats_text = [
+                f"Generation: {generation}",
+                f"Alive: {alive_count}/{total_count}",
+                f"Best Fitness (Global): {best_fitness:.2f}",
+                f"Timer: {evolution.generation_timer:.1f}s"
+            ]
+            
+            font = pygame.font.SysFont('Arial', 16)
+            y_offset = 10
+            for line in stats_text:
+                text_surface = font.render(line, True, (0, 0, 0))
+                self.screen.blit(text_surface, (10, y_offset))
+                y_offset += 20
+            
+            # Draw stability indicators
+            for ind in evolution.population:
+                if ind.live:
+                    pos = ind.chassis_body.position
+
+                    indicator_pos = (int(pos.x), int(pos.y - 30))
+                    
+                    distance = ind.getDistance()
+                    is_stable = abs(ind.chassis_body.angle) < 0.5
+                    
+                    if distance < 0:
+                        color = (0, 0, 255) # Blue for negative distance
+                    elif is_stable:
+                        color = (0, 255, 0) # Green for stable
+                    else:
+                        color = (255, 0, 0) # Red for unstable
+                    
+                    pygame.draw.circle(self.screen, color, indicator_pos, 5)
+            
+            threshold_y = self.ground_y - 15
+            pygame.draw.line(self.screen, (255, 0, 0), (0, threshold_y), (self.screen.get_width(), threshold_y), 2)
+
+            if evolution.generation_timer < Evolution.grace_period:
+                grace_text = font.render("GRACE PERIOD", True, (0, 200, 0))
+                self.screen.blit(grace_text, (10, y_offset))
+                
         pygame.display.update()  ### All done, lets flip the display
 
     def main(self,evolution:Evolution):
@@ -145,7 +192,7 @@ class Simulator:
         simulate = True
         evolution.start_generation()
         while running:
-            self.draw()
+            self.draw(evolution)
             iterations = 10
             dt = 1.0 / float(self.fps) / float(iterations)
             for event in pygame.event.get():
@@ -173,8 +220,8 @@ class Simulator:
 if __name__ == '__main__':
     sim = Simulator()
     evo = Evolution(sim.space,sim.ground_y,sim.fps)
-    # evo.clear_population()
-    # evo.load_population("population_foot.txt")
+    evo.clear_population()
+    evo.load_population("population_foot.txt")
     # evo.load_best_indvidual("best_ind_foot.txt",put_to_population=True)
     # evo.load_population("results/problem2/population_problem2.txt")
     # evo.load_best_indvidual("results/problem2/best_ind_problem_2.txt",put_to_population=True)
